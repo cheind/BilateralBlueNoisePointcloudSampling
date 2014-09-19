@@ -14,9 +14,11 @@ include_directories(${Eigen_INCLUDE_DIRS})
 set(BBN_SOURCES
 	inc/bbn/differential.h
 	inc/bbn/dart_throwing.h
+	inc/bbn/scaling.h
 	
 	src/differential.cpp
 	src/dart_throwing.cpp
+	src/scaling.cpp
 )
 
 include_directories(inc)

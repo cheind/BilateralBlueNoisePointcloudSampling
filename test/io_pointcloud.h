@@ -18,8 +18,7 @@
 #include <vector>
 
 /** Load oriented point cloud from file in XYZ format. 
-    Each row in the file is composed of the following six values px py pz nx ny nz and describes a single point/normal pair.
- */
+    Each row in the file is composed of the following six values px py pz nx ny nz and describes a single point/normal pair. */
 bool loadPointcloudFromXYZFile(
                             const char *path,
                             std::vector<Eigen::Vector3f> &points,
@@ -42,7 +41,7 @@ bool loadPointcloudFromXYZFile(
     while (fscanf(f, format, &p.x(), &p.y(), &p.z(), &n.x(), &n.y(), &n.z()) == 6) {
         fgets(buffer, buf_size, f); // read line remainings
         points.push_back(p);
-        normals.push_back(n);
+        normals.push_back(n.normalized()); // ensure normal unit length.
     }
     
     fclose(f);
@@ -51,8 +50,7 @@ bool loadPointcloudFromXYZFile(
 }
 
 /** Save oriented point cloud in XYZ format.
-    Each row in the file is composed of the following six values px py pz nx ny nz and describes a single point/normal pair.
- */
+    Each row in the file is composed of the following six values px py pz nx ny nz and describes a single point/normal pair. */
 bool savePointcloudToXYZFile(
                                const char *path,
                                const std::vector<Eigen::Vector3f> &points,

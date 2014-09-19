@@ -14,8 +14,10 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <Eigen/Dense>
-#include "io_pointcloud.h"
 #include <iostream>
+#include "io_pointcloud.h"
+#include <bbn/scaling.h>
+
 
 int main(int argc, const char **argv) {
     
@@ -29,6 +31,19 @@ int main(int argc, const char **argv) {
     if (!loadPointcloudFromXYZFile(argv[1], points, normals)) {
         std::cerr << "Failed to load pointcloud from file" << std::endl;
     }
+    
+
+    Eigen::Affine3f rescale;
+    if (!bbn::scalePointcloudToUnitBox(points, normals, rescale)) {
+        std::cerr << "Failed to rescale pointcloud" << std::endl;
+    }
+    
+    Eigen::Matrix3f normalMatrix = rescale.linear().inverse().transpose();
+    for (size_t i = 0; i < points.size(); ++i) {
+        points[i] = rescale * points[i];
+        normals[i] = (normalMatrix * normals[i]).normalized();
+    }
+    
     
     if (!savePointcloudToXYZFile(argv[2], points, normals)) {
         std::cerr << "Failed to load pointcloud from file" << std::endl;
