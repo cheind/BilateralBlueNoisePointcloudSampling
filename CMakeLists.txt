@@ -23,5 +23,5 @@ include_directories(inc)
 add_library(bbn ${BBN_SOURCES})
 
 # Setup tests
-add_executable(resample test/resample.cpp)
+add_executable(resample test/io_pointcloud.h test/resample.cpp)
 target_link_libraries(resample bbn)
