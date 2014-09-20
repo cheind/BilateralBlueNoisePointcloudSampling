@@ -13,18 +13,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef BBN_SCALING_H
-#define BBN_SCALING_H
+#ifndef BBN_UTIL_H
+#define BBN_UTIL_H
 
-#include <Eigen/Dense>
-#include <Eigen/Geometry>
-#include <vector>
 
-namespace bbn {
-    
-    /** Scale oriented pointcloud so that they are contained within a box of unit size. 
-        Transforms the points in place and returns the inverse scaling transformation to restore the original pointcloud. */
-    bool scalePointcloudToUnitBox(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, Eigen::Affine3f &invTransform);
-}
+#if BBN_VERBOSE_OUTPUT
+    #include <stdio.h>
+    #define BBN_LOG(...) printf(__VA_ARGS__)
+#else
+    #define BBN_LOG(...)
+#endif
 
 #endif

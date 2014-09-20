@@ -18,6 +18,7 @@
 
 
 namespace bbn {
+    
     bool scalePointcloudToUnitBox(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, Eigen::Affine3f &invTransform)
     {
         if (points.empty())
@@ -28,9 +29,9 @@ namespace bbn {
         const Eigen::Vector3f centroid = pointsInMatrix.rowwise().mean();
         pointsInMatrix = pointsInMatrix.colwise() - centroid;
         
-        Eigen::Matrix3f cov = pointsInMatrix * pointsInMatrix.transpose();
+        const Eigen::Matrix3f cov = pointsInMatrix * pointsInMatrix.transpose();
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig(cov);
-        Eigen::Matrix3f rot = eig.eigenvectors().transpose();
+        const Eigen::Matrix3f rot = eig.eigenvectors().transpose();
         for (size_t i = 0; i < points.size(); ++i) {
             points[i] = rot * points[i];
             normals[i] = rot * normals[i];
@@ -43,14 +44,15 @@ namespace bbn {
         }
         
         // Calculate isotropic scaling to that the longest side becomes unit length
-        float s = 1.f / aabb.diagonal().maxCoeff();
+        const float s = 1.f / aabb.diagonal().maxCoeff();
         
         for (size_t i = 0; i < points.size(); ++i) {
             points[i] *= s;
         }
         
+        // Assemble inverse transform.
         invTransform = Eigen::Affine3f::Identity();
-        invTransform = invTransform.scale(s).rotate(rot).translate(-centroid); // applied order is from right to left.
+        invTransform = invTransform.scale(s).rotate(rot).translate(-centroid); // applied in right to left order.
         invTransform = invTransform.inverse();
             
         return true;

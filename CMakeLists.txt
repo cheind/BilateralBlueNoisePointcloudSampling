@@ -1,9 +1,15 @@
+
+# User options
+set(BBN_VERBOSE TRUE)
+
 cmake_minimum_required(VERSION 2.8)
-
 project(BilateralBlueNoisePointcloudSampling)
-
-# Update CMAKE module paths to locate custom finders
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/CMakeModules/")
+
+# Handle user options.
+if (BBN_VERBOSE)
+	add_definitions("-DBBN_VERBOSE_OUTPUT")
+endif()
 
 # Find Eigen
 find_package(Eigen REQUIRED)
@@ -15,8 +21,8 @@ set(BBN_SOURCES
 	inc/bbn/differential.h
 	inc/bbn/dart_throwing.h
 	inc/bbn/scaling.h
+	inc/bbn/util.h
 	
-	src/differential.cpp
 	src/dart_throwing.cpp
 	src/scaling.cpp
 )

@@ -16,7 +16,10 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include "io_pointcloud.h"
+
 #include <bbn/scaling.h>
+#include <bbn/dart_throwing.h>
+#include <bbn/differential.h>
 
 
 int main(int argc, const char **argv) {
@@ -38,14 +41,26 @@ int main(int argc, const char **argv) {
         std::cerr << "Failed to rescale pointcloud" << std::endl;
     }
     
+    std::vector<Eigen::Vector3f> resampledPoints, resampledNormals;
+    //bbn::DartThrowing<bbn::PositionalDifferential> dt;
+    //dt.setBilateralDifferential(bbn::PositionalDifferential());
+    
+    bbn::DartThrowing<bbn::BilateralAugmentativeDifferential> dt;
+    dt.setBilateralDifferential(bbn::BilateralAugmentativeDifferential(1));
+    
+    dt.setConflictRadius(0.2f);
+    if (!dt.resample(points, normals, resampledPoints, resampledNormals)) {
+        std::cerr << "Failed to throw darts." << std::endl;
+    }
+    
     Eigen::Matrix3f normalMatrix = rescale.linear().inverse().transpose();
-    for (size_t i = 0; i < points.size(); ++i) {
-        points[i] = rescale * points[i];
-        normals[i] = (normalMatrix * normals[i]).normalized();
+    for (size_t i = 0; i < resampledPoints.size(); ++i) {
+        resampledPoints[i] = rescale * resampledPoints[i];
+        resampledNormals[i] = (normalMatrix * resampledNormals[i]).normalized();
     }
     
     
-    if (!savePointcloudToXYZFile(argv[2], points, normals)) {
+    if (!savePointcloudToXYZFile(argv[2], resampledPoints, resampledNormals)) {
         std::cerr << "Failed to load pointcloud from file" << std::endl;
     }
     
