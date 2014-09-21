@@ -25,6 +25,9 @@ namespace bbn {
     /** Scale oriented pointcloud so that they are contained within a box of unit size. 
         Transforms the points in place and returns the inverse scaling transformation to restore the original pointcloud. */
     bool scalePointcloudToUnitBox(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, Eigen::Affine3f &invTransform);
+    
+    /** Restores the pointcloud. */
+    bool restoreScaledPointcloud(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, const Eigen::Affine3f &invTransform);
 }
 
 #endif

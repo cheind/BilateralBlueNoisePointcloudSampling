@@ -47,18 +47,15 @@ int main(int argc, const char **argv) {
     
     bbn::DartThrowing<bbn::BilateralAugmentativeDifferential> dt;
     dt.setBilateralDifferential(bbn::BilateralAugmentativeDifferential(1));
+    dt.setConflictRadius(0.1f);
     
-    dt.setConflictRadius(0.2f);
     if (!dt.resample(points, normals, resampledPoints, resampledNormals)) {
         std::cerr << "Failed to throw darts." << std::endl;
     }
     
-    Eigen::Matrix3f normalMatrix = rescale.linear().inverse().transpose();
-    for (size_t i = 0; i < resampledPoints.size(); ++i) {
-        resampledPoints[i] = rescale * resampledPoints[i];
-        resampledNormals[i] = (normalMatrix * resampledNormals[i]).normalized();
+    if (!bbn::restoreScaledPointcloud(resampledPoints, resampledNormals, rescale)) {
+        std::cerr << "Failed to undo pointcloud scaling" << std::endl;
     }
-    
     
     if (!savePointcloudToXYZFile(argv[2], resampledPoints, resampledNormals)) {
         std::cerr << "Failed to load pointcloud from file" << std::endl;

@@ -57,4 +57,17 @@ namespace bbn {
             
         return true;
     }
+    
+    bool restoreScaledPointcloud(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, const Eigen::Affine3f &invTransform)
+    {
+        Eigen::Matrix3f normalMatrix = invTransform.linear().inverse().transpose();
+        for (size_t i = 0; i < points.size(); ++i) {
+            points[i] = invTransform * points[i];
+            normals[i] = (normalMatrix * normals[i]).normalized();
+        }
+        
+        return true;
+    }
+    
+    
 }
