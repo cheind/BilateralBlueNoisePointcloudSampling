@@ -18,12 +18,12 @@
 
 #include <Eigen/Dense>
 #include <vector>
+#include <time.h>
 #include <bbn/util.h>
 
 namespace bbn {
     
-    /** Resample through dart throwing. */
-    template<class BilateralDifferential>
+    /** Resample through dart throwing. */    
     class DartThrowing {
     public:
         /** Default constructor. */
@@ -31,10 +31,6 @@ namespace bbn {
         : _conflictRadius(0.01f), _n(100000)
         {}
         
-        /** Set the configuration for the bilateral differential. */
-        void setBilateralDifferential(const BilateralDifferential &bd) {
-            _bdiff = bd;
-        }
         
         /** Set the conflict radius that determines the resampling resolution. */
         void setConflictRadius(float r) {
@@ -47,8 +43,10 @@ namespace bbn {
         }
         
         /** Resample input point cloud. */
+		template<class BilateralDifferential>
         bool resample(const std::vector<Eigen::Vector3f> &sourcePoints, const std::vector<Eigen::Vector3f> &sourceNormals,
-                      std::vector<Eigen::Vector3f> &outputPoints, std::vector<Eigen::Vector3f> &outputNormals)
+                      std::vector<Eigen::Vector3f> &outputPoints, std::vector<Eigen::Vector3f> &outputNormals,
+					  const BilateralDifferential &bd)
         {
             if (sourcePoints.empty())
                 return false;
@@ -73,7 +71,7 @@ namespace bbn {
                 const Eigen::Vector3f &p = sourcePoints[sampleIndices[id]];
                 const Eigen::Vector3f &n = sourceNormals[sampleIndices[id]];
                 
-                if (!isInConflict(p, n, outputPoints, outputNormals)) {
+                if (!isInConflict(p, n, outputPoints, outputNormals, bd)) {
                     outputPoints.push_back(p);
                     outputNormals.push_back(n);
                     attempt = 0;
@@ -98,11 +96,13 @@ namespace bbn {
     private:
         
         /** Test if the given sample is in conflict with the previous ones. */
+		template<class BilateralDifferential>
         bool isInConflict(const Eigen::Vector3f &p, const Eigen::Vector3f &n,
-                          const std::vector<Eigen::Vector3f> &previousPoints, const std::vector<Eigen::Vector3f> &previousNormals) const
+                          const std::vector<Eigen::Vector3f> &previousPoints, const std::vector<Eigen::Vector3f> &previousNormals,
+						  const BilateralDifferential &bd) const
         {
             for (size_t i = 0; i < previousPoints.size(); ++i) {
-                const float d = _bdiff(p, n, previousPoints[i], previousNormals[i]);
+                const float d = bd(p, n, previousPoints[i], previousNormals[i]);
                 if (d < _conflictRadius) {
                     return true;
                 }
@@ -111,7 +111,6 @@ namespace bbn {
             return false;
         }
         
-        BilateralDifferential _bdiff;
         float _conflictRadius;
         int _n;
     };

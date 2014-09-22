@@ -30,33 +30,33 @@ int main(int argc, const char **argv) {
         return -1;
     }
     
+	// Load from file.
     std::vector<Eigen::Vector3f> points, normals;
     if (!loadPointcloudFromXYZFile(argv[1], points, normals)) {
         std::cerr << "Failed to load pointcloud from file" << std::endl;
     }
-    
 
+	// Rescale point cloud.
     Eigen::Affine3f rescale;
     if (!bbn::scalePointcloudToUnitBox(points, normals, rescale)) {
         std::cerr << "Failed to rescale pointcloud" << std::endl;
     }
     
-    std::vector<Eigen::Vector3f> resampledPoints, resampledNormals;
-    //bbn::DartThrowing<bbn::PositionalDifferential> dt;
-    //dt.setBilateralDifferential(bbn::PositionalDifferential());
-    
-    bbn::DartThrowing<bbn::BilateralAugmentativeDifferential> dt;
-    dt.setBilateralDifferential(bbn::BilateralAugmentativeDifferential(1));
+	// Resample by dart throwing.
+    std::vector<Eigen::Vector3f> resampledPoints, resampledNormals;    
+    bbn::DartThrowing dt;
     dt.setConflictRadius(0.1f);
     
-    if (!dt.resample(points, normals, resampledPoints, resampledNormals)) {
+	if (!dt.resample(points, normals, resampledPoints, resampledNormals, bbn::BilateralAugmentativeDifferential(0.5))) {
         std::cerr << "Failed to throw darts." << std::endl;
     }
     
+	// Restore original dimensions.
     if (!bbn::restoreScaledPointcloud(resampledPoints, resampledNormals, rescale)) {
         std::cerr << "Failed to undo pointcloud scaling" << std::endl;
     }
     
+	// Save result.
     if (!savePointcloudToXYZFile(argv[2], resampledPoints, resampledNormals)) {
         std::cerr << "Failed to load pointcloud from file" << std::endl;
     }

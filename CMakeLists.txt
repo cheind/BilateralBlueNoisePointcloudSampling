@@ -23,7 +23,6 @@ set(BBN_SOURCES
 	inc/bbn/scaling.h
 	inc/bbn/util.h
 	
-	src/dart_throwing.cpp
 	src/scaling.cpp
 )
 
