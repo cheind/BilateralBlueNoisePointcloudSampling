@@ -18,12 +18,16 @@ include_directories(${Eigen_INCLUDE_DIRS})
 
 # Setup library
 set(BBN_SOURCES
-	inc/bbn/differential.h
-	inc/bbn/dart_throwing.h
+	inc/bbn/eigen_types.h
 	inc/bbn/scaling.h
+	inc/bbn/dart_throwing.h	
 	inc/bbn/util.h
+	inc/bbn/bruteforce_locator.h
+	inc/bbn/hashtable_locator.h
+	inc/bbn/augmentation.h
 	
 	src/scaling.cpp
+	src/augmentation.cpp
 )
 
 include_directories(inc)

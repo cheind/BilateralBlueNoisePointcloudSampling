@@ -18,16 +18,16 @@
 
 #include <Eigen/Dense>
 #include <vector>
-#include <time.h>
 #include <bbn/util.h>
+#include <bbn/eigen_types.h>
 
 namespace bbn {
     
     /** Resample through dart throwing. */    
-    class DartThrowing {
+    class AugmentedDartThrowing {
     public:
         /** Default constructor. */
-        DartThrowing()
+		AugmentedDartThrowing()
         : _conflictRadius(0.01f), _n(100000)
         {}
         
@@ -41,47 +41,50 @@ namespace bbn {
         void setMaximumAttempts(int n) {
             _n = n;
         }
+
+		/* Set random seed for sampling. */
+		void setRandomSeed(unsigned int s) {
+			srand(s);
+		}
         
         /** Resample input point cloud. */
-		template<class BilateralDifferential>
-        bool resample(const std::vector<Eigen::Vector3f> &sourcePoints, const std::vector<Eigen::Vector3f> &sourceNormals,
-                      std::vector<Eigen::Vector3f> &outputPoints, std::vector<Eigen::Vector3f> &outputNormals,
-					  const BilateralDifferential &bd)
+		template<class Locator>
+        bool resample(const std::vector<Eigen::Vector6f> &source,					  
+					  std::vector<size_t> &outputIds)
         {
-            if (sourcePoints.empty())
+			if (source.empty())
                 return false;
-            
+
+			
             // Build a random array of sample indices
             std::vector<size_t> sampleIndices;
-            sampleIndices.reserve(sourcePoints.size());
-            for (size_t i = 0; i < sourcePoints.size(); ++i)
+			sampleIndices.reserve(source.size());
+			for (size_t i = 0; i < source.size(); ++i)
                 sampleIndices.push_back(i);
-            
-            srand(unsigned(time(NULL)));
             std::random_shuffle(sampleIndices.begin(), sampleIndices.end());
-            
-            outputPoints.clear();
-            outputNormals.clear();
-            
+                      
             // Loop over samples and try to add one after another.
+			//Locator loc(100);
+			Locator loc;
+			outputIds.clear();
             
-            int attempt = 0;
-            size_t id = 0;
+            int attempt = 0;            
+			size_t id = 0;
             while (id < sampleIndices.size() && attempt < _n) {
-                const Eigen::Vector3f &p = sourcePoints[sampleIndices[id]];
-                const Eigen::Vector3f &n = sourceNormals[sampleIndices[id]];
-                
-                if (!isInConflict(p, n, outputPoints, outputNormals, bd)) {
-                    outputPoints.push_back(p);
-                    outputNormals.push_back(n);
-                    attempt = 0;
+				size_t pointId = sampleIndices[id];
+				const Eigen::Vector6f &p = source[pointId];
+               
+				if (!loc.findAnyWithinRadius(p, _conflictRadius)) {
+					loc.add(p);
+					outputIds.push_back(pointId);
+					attempt = 0;
                 } else {
                     attempt++;
                 }
                 
                 if (id % 5000 == 0) {
                     BBN_LOG("Processed %.2f - Generated %d of possible %d output samples\n",
-                            (float)id / sourcePoints.size() * 100, (int)outputPoints.size(), (int)id);
+                            (float)id / source.size() * 100, (int)outputIds.size(), (int)id);
                 }
                 ++id;
             }
@@ -94,22 +97,6 @@ namespace bbn {
         }
         
     private:
-        
-        /** Test if the given sample is in conflict with the previous ones. */
-		template<class BilateralDifferential>
-        bool isInConflict(const Eigen::Vector3f &p, const Eigen::Vector3f &n,
-                          const std::vector<Eigen::Vector3f> &previousPoints, const std::vector<Eigen::Vector3f> &previousNormals,
-						  const BilateralDifferential &bd) const
-        {
-            for (size_t i = 0; i < previousPoints.size(); ++i) {
-                const float d = bd(p, n, previousPoints[i], previousNormals[i]);
-                if (d < _conflictRadius) {
-                    return true;
-                }
-            }
-            
-            return false;
-        }
         
         float _conflictRadius;
         int _n;

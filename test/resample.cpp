@@ -19,8 +19,9 @@
 
 #include <bbn/scaling.h>
 #include <bbn/dart_throwing.h>
-#include <bbn/differential.h>
-
+#include <bbn/augmentation.h>
+#include <bbn/bruteforce_locator.h>
+#include <bbn/hashtable_locator.h>
 
 int main(int argc, const char **argv) {
     
@@ -43,13 +44,27 @@ int main(int argc, const char **argv) {
     }
     
 	// Resample by dart throwing.
-    std::vector<Eigen::Vector3f> resampledPoints, resampledNormals;    
-    bbn::DartThrowing dt;
-    dt.setConflictRadius(0.1f);
+	std::vector<Eigen::Vector6f> stackedInput, stackedOutput;
+	std::vector<size_t> stackedOutputIds;
+	bbn::stackPointsAndNormalsWeighted(points, normals, stackedInput, 1.0f, 0.05f);
+
+	// Locator to be used.
+	typedef bbn::HashtableLocator<Eigen::Vector6f> LocatorType;
+
+	bbn::AugmentedDartThrowing adt;
+	adt.setConflictRadius(0.1f);
+	adt.setRandomSeed(10);
     
-	if (!dt.resample(points, normals, resampledPoints, resampledNormals, bbn::BilateralAugmentativeDifferential(0.5))) {
+	if (!adt.resample<LocatorType>(stackedInput, stackedOutputIds)) {
         std::cerr << "Failed to throw darts." << std::endl;
     }
+
+	// Create output
+	std::vector<Eigen::Vector3f> resampledPoints, resampledNormals;
+	for (size_t i = 0; i < stackedOutputIds.size(); ++i) {
+		resampledPoints.push_back(points[stackedOutputIds[i]]);
+		resampledNormals.push_back(normals[stackedOutputIds[i]]);
+	}
     
 	// Restore original dimensions.
     if (!bbn::restoreScaledPointcloud(resampledPoints, resampledNormals, rescale)) {
