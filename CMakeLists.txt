@@ -6,6 +6,10 @@ cmake_minimum_required(VERSION 2.8)
 project(BilateralBlueNoisePointcloudSampling)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/CMakeModules/")
 
+# C++11 support
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
+
 # Handle user options.
 if (BBN_VERBOSE)
 	add_definitions("-DBBN_VERBOSE_OUTPUT")

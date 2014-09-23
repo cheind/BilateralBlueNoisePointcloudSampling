@@ -74,7 +74,7 @@ namespace bbn {
 				if (!testBallOverlapsBucket(query, radius, *biter, _bucketSize))
 					continue;
 
-				BucketHash::const_iterator iter = _bucketHash.find(*biter);
+				typename BucketHash::const_iterator iter = _bucketHash.find(*biter);
 				if (iter != _bucketHash.end()) {
 					for (size_t i = 0; i < iter->second.size(); ++i) {
 						const float d = (query - _points[iter->second[i]]).squaredNorm();
@@ -119,7 +119,7 @@ namespace bbn {
 			/* Compare two buckets for equality. */
 			inline bool operator()(const Bucket &k0, const Bucket &k1) const
 			{
-				for (Bucket::Index i = 0; i < k0.rows(); ++i) {
+				for (typename Bucket::Index i = 0; i < k0.rows(); ++i) {
 					if (k0(i) != k1(i))
 						return false;
 				}
@@ -214,7 +214,7 @@ namespace bbn {
 
 		/* Converts a bucket back to a world point. The worldpoint describes the buckets min-corner*/
 		static inline VectorT toWorldPoint(const Bucket &b, typename VectorT::Scalar resolution) {
-			return b.cast<typename VectorT::Scalar>() * resolution;
+			return b.template cast<typename VectorT::Scalar>() * resolution;
 		}
 
 		/** Converts a n-dimensional ball search to a list of buckets to search. Note that declaring the range of buckets as AABB is not ideal
@@ -233,10 +233,10 @@ namespace bbn {
 		{
 			typedef typename VectorT::Scalar Scalar;
 
-			VectorT worldMinCorner = minCorner.cast<float>() * cellSize;
+			VectorT worldMinCorner = toWorldPoint(minCorner,  cellSize);
 
-			typename Scalar d = 0;
-			for (Bucket::Index i = 0; i < minCorner.rows(); ++i) {
+            Scalar d = 0;
+			for (typename Bucket::Index i = 0; i < minCorner.rows(); ++i) {
 				// On the first glance this seems like it misses a case, when the center is inside the bounds in the current dimension.
 				// But that's not the case, as in this scenerio the closest value is the center value itself, leading to zero error term.
 				Scalar e = std::max<Scalar>(worldMinCorner(i) - center(i), 0) + 
