@@ -30,12 +30,12 @@ namespace bbn {
 	public:
 		/* Construct empty locator*/
 		inline HashtableLocator()
-			:_invBucketResolution(1.f / 0.05f)
+			: _bucketSize(0.05f), _invBucketResolution(1.f / 0.05f)
 		{}
 
 		/* Construct with resolution */
 		inline HashtableLocator(typename VectorT::Scalar resolution)
-			: _invBucketResolution(1.f / resolution)
+			: _bucketSize(resolution), _invBucketResolution(1.f / resolution)
 		{}
 
 		/** Add a new point. */
@@ -70,6 +70,10 @@ namespace bbn {
 
 			bool found = false;
 			for (BucketRangeIterator biter = begin; biter != end && !found; ++biter) {
+
+				if (!testBallOverlapsBucket(query, radius, *biter, _bucketSize))
+					continue;
+
 				BucketHash::const_iterator iter = _bucketHash.find(*biter);
 				if (iter != _bucketHash.end()) {
 					for (size_t i = 0; i < iter->second.size(); ++i) {
@@ -202,10 +206,15 @@ namespace bbn {
 		{ 
 			Bucket b(point.rows(), 1);
 			for (typename VectorT::Index i = 0; i < point.rows(); ++i) {
-				b(i) = static_cast<int>(point(i) * invResolution);
+				b(i) = static_cast<int>(std::floor(point(i) * invResolution));
 			}
 			return b;
 			
+		}
+
+		/* Converts a bucket back to a world point. The worldpoint describes the buckets min-corner*/
+		static inline VectorT toWorldPoint(const Bucket &b, typename VectorT::Scalar resolution) {
+			return b.cast<typename VectorT::Scalar>() * resolution;
 		}
 
 		/** Converts a n-dimensional ball search to a list of buckets to search. Note that declaring the range of buckets as AABB is not ideal
@@ -216,10 +225,37 @@ namespace bbn {
 			maxCorner = toBucket(point + VectorT::Constant(radius), invResolution);
 		}
 
+		/* Test for intersection between an n-dimensional sphere and bounds.
+		   Based on "On faster sphere box overlap testing" 
+		   http://www.mrtc.mdh.se/projects/3Dgraphics/paperF.pdf
+		 */
+		static inline bool testBallOverlapsBucket(const VectorT &center, typename VectorT::Scalar radius, const Bucket &minCorner, typename VectorT::Scalar cellSize)
+		{
+			typedef typename VectorT::Scalar Scalar;
+
+			VectorT worldMinCorner = minCorner.cast<float>() * cellSize;
+
+			typename Scalar d = 0;
+			for (Bucket::Index i = 0; i < minCorner.rows(); ++i) {
+				// On the first glance this seems like it misses a case, when the center is inside the bounds in the current dimension.
+				// But that's not the case, as in this scenerio the closest value is the center value itself, leading to zero error term.
+				Scalar e = std::max<Scalar>(worldMinCorner(i) - center(i), 0) + 
+						   std::max<Scalar>(center(i) - (worldMinCorner(i) + cellSize), 0);
+
+				// In the paper it seems like there is a typo at this point.
+				if (e > radius)
+					return false;
+				d += e*e;
+			}
+
+			return d <= radius * radius;
+			return true;
+		}
+
 		
 		BucketHash _bucketHash;
 		ArrayOfVectorT _points;
-		typename VectorT::Scalar _invBucketResolution;
+		typename VectorT::Scalar _bucketSize, _invBucketResolution;
 	};
 
 }
