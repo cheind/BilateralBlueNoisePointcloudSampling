@@ -34,7 +34,7 @@ namespace bbn {
         
         /** Set the conflict radius that determines the resampling resolution. */
         void setConflictRadius(float r) {
-            _conflictRadius = r * r;
+            _conflictRadius = r;
         }
         
         /** Resampling stops after n consecutive samples failed to contribute. */

@@ -52,7 +52,7 @@ int main(int argc, const char **argv) {
 	typedef bbn::HashtableLocator<Eigen::Vector6f> LocatorType;
 
 	bbn::AugmentedDartThrowing adt;
-	adt.setConflictRadius(0.1f);
+	adt.setConflictRadius(0.01f);
 	adt.setRandomSeed(10);
     
 	if (!adt.resample<LocatorType>(stackedInput, stackedOutputIds)) {
