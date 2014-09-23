@@ -18,11 +18,9 @@
 
 #include <vector>
 #include <unordered_map>
-#include <stack>
 #include <limits>
 #include <Eigen/Dense>
 #include <bbn/eigen_types.h>
-#include <iostream>
 
 namespace bbn {
 
