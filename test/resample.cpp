@@ -17,7 +17,7 @@
 #include <iostream>
 #include "io_pointcloud.h"
 
-#include <bbn/scaling.h>
+#include <bbn/normalization.h>
 #include <bbn/dart_throwing.h>
 #include <bbn/augmentation.h>
 #include <bbn/bruteforce_locator.h>

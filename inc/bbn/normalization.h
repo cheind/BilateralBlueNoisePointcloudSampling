@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef BBN_SCALING_H
-#define BBN_SCALING_H
+#ifndef BBN_NORMALIZATION_H
+#define BBN_NORMALIZATION_H
 
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
