@@ -37,11 +37,15 @@ int main(int argc, const char **argv) {
         std::cerr << "Failed to load pointcloud from file" << std::endl;
     }
 
-	// Rescale point cloud.
-    Eigen::Affine3f rescale;
-    if (!bbn::scalePointcloudToUnitBox(points, normals, rescale)) {
-        std::cerr << "Failed to rescale pointcloud" << std::endl;
+	// Normalize input
+	Eigen::Affine3f undoRotTrans(Eigen::Affine3f::Identity()), undoScale(Eigen::Affine3f::Identity());
+	if (!bbn::normalizeOrientationAndTranslation(points, normals, undoRotTrans)) {
+        std::cerr << "Failed to normalize position / orientation of pointcloud" << std::endl;
     }
+
+	if (!bbn::normalizeSize(points, normals, undoScale)) {
+		std::cerr << "Failed to normalize size of pointcloud" << std::endl;
+	}
     
 	// Resample by dart throwing.
 	std::vector<Eigen::Vector6f> stackedInput, stackedOutput;
@@ -67,7 +71,8 @@ int main(int argc, const char **argv) {
 	}
     
 	// Restore original dimensions.
-    if (!bbn::restoreScaledPointcloud(resampledPoints, resampledNormals, rescale)) {
+	Eigen::Affine3f undoCombined = undoRotTrans * undoScale;
+	if (!bbn::applyTransform(resampledPoints, resampledNormals, undoCombined)) {
         std::cerr << "Failed to undo pointcloud scaling" << std::endl;
     }
     

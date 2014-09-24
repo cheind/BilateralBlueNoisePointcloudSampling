@@ -21,13 +21,16 @@
 #include <vector>
 
 namespace bbn {
-    
-    /** Scale oriented pointcloud so that they are contained within a box of unit size. 
-        Transforms the points in place and returns the inverse scaling transformation to restore the original pointcloud. */
-    bool scalePointcloudToUnitBox(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, Eigen::Affine3f &invTransform);
-    
-    /** Restores the pointcloud. */
-    bool restoreScaledPointcloud(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, const Eigen::Affine3f &invTransform);
+
+	/* Normalizes the pointclouds position and orientation using PCA. Returns the inverse transform. */
+	bool normalizeOrientationAndTranslation(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, Eigen::Affine3f &invTransform);
+
+	/* Normalizes the pointclouds size through a uniform scaling such that the longest side of the AABB becomes unit length. Assumes normalized rotation/translation.  */
+	bool normalizeSize(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, Eigen::Affine3f &invTransform);
+
+	/* Apply a general affine transformation to a pointcloud. */
+	bool applyTransform(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, const Eigen::Affine3f &t);
+   
 }
 
 #endif

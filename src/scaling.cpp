@@ -18,51 +18,60 @@
 
 
 namespace bbn {
+
+	bool normalizeOrientationAndTranslation(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, Eigen::Affine3f &invTransform) 
+	{
+		if (points.empty())
+			return false;
+
+		// Perform PCA on input to determine a canoncial coordinate frame for the given point cloud.
+		Eigen::Matrix3Xf::MapType pointsInMatrix(points.at(0).data(), 3, static_cast<int>(points.size()));
+		const Eigen::Vector3f centroid = pointsInMatrix.rowwise().mean();
+		pointsInMatrix = pointsInMatrix.colwise() - centroid;
+
+		const Eigen::Matrix3f cov = pointsInMatrix * pointsInMatrix.transpose();
+		Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig(cov);
+		const Eigen::Matrix3f rot = eig.eigenvectors().transpose();
+		for (size_t i = 0; i < points.size(); ++i) {
+			points[i] = rot * points[i];
+			normals[i] = rot * normals[i];
+		}
+
+		invTransform = Eigen::Affine3f::Identity();
+		invTransform = invTransform.rotate(rot).translate(-centroid); // applied in right to left order.
+		invTransform = invTransform.inverse();
+
+		return true;
+	}
+
+	bool normalizeSize(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, Eigen::Affine3f &invTransform)
+	{
+		// Assumes normalized rotation/translation
+		Eigen::AlignedBox3f aabb;
+		for (size_t i = 0; i < points.size(); ++i) {
+			aabb.extend(points[i]);
+		}
+
+		// Calculate isotropic scaling to that the longest side becomes unit length
+		const float s = 1.f / aabb.diagonal().maxCoeff();
+
+		for (size_t i = 0; i < points.size(); ++i) {
+			points[i] *= s;
+		}
+
+		// Assemble inverse transform.
+		invTransform = Eigen::Affine3f::Identity();
+		invTransform = invTransform.scale(s);
+		invTransform = invTransform.inverse();
+
+		return true;
+	}
     
-    bool scalePointcloudToUnitBox(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, Eigen::Affine3f &invTransform)
+	bool applyTransform(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, const Eigen::Affine3f &t)
     {
-        if (points.empty())
-            return false;
-        
-        // Perform PCA on input to determine a canoncial coordinate frame for the given point cloud.
-        Eigen::Matrix3Xf::MapType pointsInMatrix(points.at(0).data(), 3, static_cast<int>(points.size()));
-        const Eigen::Vector3f centroid = pointsInMatrix.rowwise().mean();
-        pointsInMatrix = pointsInMatrix.colwise() - centroid;
-        
-        const Eigen::Matrix3f cov = pointsInMatrix * pointsInMatrix.transpose();
-        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig(cov);
-        const Eigen::Matrix3f rot = eig.eigenvectors().transpose();
+        const Eigen::Matrix3f normalMatrix = t.linear().inverse().transpose();
         for (size_t i = 0; i < points.size(); ++i) {
-            points[i] = rot * points[i];
-            normals[i] = rot * normals[i];
-        }
-        
-        // Now that we have the pointcloud in a canonical frame, calculate axis aligned bounding box of input
-        Eigen::AlignedBox3f aabb;
-        for (size_t i = 0; i < points.size(); ++i) {
-            aabb.extend(points[i]);
-        }
-        
-        // Calculate isotropic scaling to that the longest side becomes unit length
-        const float s = 1.f / aabb.diagonal().maxCoeff();
-        
-        for (size_t i = 0; i < points.size(); ++i) {
-            points[i] *= s;
-        }
-        
-        // Assemble inverse transform.
-        invTransform = Eigen::Affine3f::Identity();
-        invTransform = invTransform.scale(s).rotate(rot).translate(-centroid); // applied in right to left order.
-        invTransform = invTransform.inverse();
-            
-        return true;
-    }
-    
-    bool restoreScaledPointcloud(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, const Eigen::Affine3f &invTransform)
-    {
-        Eigen::Matrix3f normalMatrix = invTransform.linear().inverse().transpose();
-        for (size_t i = 0; i < points.size(); ++i) {
-            points[i] = invTransform * points[i];
+            points[i] = t * points[i];
             normals[i] = (normalMatrix * normals[i]).normalized();
         }
         
