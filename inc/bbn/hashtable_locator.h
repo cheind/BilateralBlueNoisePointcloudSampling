@@ -97,10 +97,10 @@ namespace bbn {
 
 	private:	
 
-		/* An arbitrary bucket in n-dimensions. */
+		/* An bucket in n-dimensions. */
 		typedef typename Eigen::Matrix<int, VectorT::RowsAtCompileTime, 1> Bucket;
 
-		/* Provides hashing comparison of bucket objects. */
+		/* Provides hashing  and bucket comparison of bucket objects. */
 		struct BucketHasher {
 
 			/* Hash bucket*/
