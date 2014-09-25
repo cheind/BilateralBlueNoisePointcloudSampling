@@ -18,19 +18,19 @@
 
 #include <Eigen/Dense>
 #include <vector>
+#include <bbn/task_traits.h>
 #include <bbn/util.h>
-#include <bbn/stacking.h>
 
 namespace bbn {
     
-    /** Resample through dart throwing. */    
-    class AugmentedDartThrowing {
+    /** Resample by dart throwing. */    
+	template<class TaskTraitsType>
+    class DartThrowing {
     public:
         /** Default constructor. */
-		AugmentedDartThrowing()
+		DartThrowing()
         : _conflictRadius(0.01f), _n(100000)
-        {}
-        
+        {}        
         
         /** Set the conflict radius that determines the resampling resolution. */
         void setConflictRadius(float r) {
@@ -46,16 +46,19 @@ namespace bbn {
 		void setRandomSeed(unsigned int s) {
 			srand(s);
 		}
+
+		/* Set parameters specific to traits. */
+		void setTaskTraits(const TaskTraitsType &t) {
+			_traits = t;
+		}
         
         /** Resample input point cloud. */
-		template<typename Position, typename Feature>
-        bool resample(const std::vector<Position> &positions,
-					  const std::vector<Feature> &features,		  
+		bool resample(const std::vector<typename TaskTraitsType::PositionVector> &positions,
+					  const std::vector<typename TaskTraitsType::FeatureVector> &features,
 					  std::vector<size_t> &outputIds)
         {
 			if (positions.empty() || positions.size() != features.size())
                 return false;
-
 			
             // Build a random array of sample indices
             std::vector<size_t> sampleIndices;
@@ -63,21 +66,17 @@ namespace bbn {
 			for (size_t i = 0; i < positions.size(); ++i)
                 sampleIndices.push_back(i);
             std::random_shuffle(sampleIndices.begin(), sampleIndices.end());
-
-			typedef typename detail::StackedVectorType<Position, Feature>::type StackedVector;
-			typedef Stacking<Position, Feature> Stacker;
-			typedef typename HashtableLocator<StackedVector> Locator;
-                      
+                     
             // Loop over samples and try to add one after another.			
-			Locator loc;
-			Stacker s;
+			typename TaskTraitsType::StackedLocator loc(_traits.stackedLocatorParams);
+			typename TaskTraitsType::Stacker s(_traits.stackerParams);
 			outputIds.clear();
             
             int attempt = 0;            
 			size_t id = 0;
             while (id < sampleIndices.size() && attempt < _n) {
 				size_t pointId = sampleIndices[id];
-				StackedVector sv = s(positions[pointId], features[pointId]);
+				typename TaskTraitsType::StackedVector sv = s(positions[pointId], features[pointId]);
                
 				if (!loc.findAnyWithinRadius(sv, _conflictRadius)) {
 					loc.add(sv);
@@ -105,6 +104,7 @@ namespace bbn {
         
         float _conflictRadius;
         int _n;
+		TaskTraitsType _traits;
     };
 }
 
