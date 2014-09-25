@@ -19,7 +19,6 @@
 #include <vector>
 #include <limits>
 #include <Eigen/Dense>
-#include <iostream>
 
 namespace bbn {
 
@@ -36,6 +35,27 @@ namespace bbn {
 		inline BruteforceLocator()
 		{}
 
+		/* Construct empty locator*/
+		inline BruteforceLocator(const Params &p)
+		{}
+
+		/* Reset to empty state*/
+		void reset()
+		{
+			_points.clear();
+		}
+
+		/** Number of dimensions. */
+		size_t dims() const
+		{
+			if (_points.empty()) {
+				return VectorT::RowsAtCompileTime;
+			}
+			else {
+				return _points.front().rows();
+			}
+		}
+
 		/** Add a new point. */
 		void add(const VectorT &point)
 		{
@@ -50,7 +70,7 @@ namespace bbn {
 		}
 
 		/* Find any neighbor within the specified radius.*/
-		inline bool findAnyWithinRadius(const VectorT &query, typename VectorT::Scalar radius, size_t *index = 0, typename VectorT::Scalar *dist2 = 0) {			
+		inline bool findAnyWithinRadius(const VectorT &query, typename VectorT::Scalar radius, size_t *index = 0, typename VectorT::Scalar *dist2 = 0) const {			
 			typename VectorT::Scalar bestDist2 = radius * radius;
 			size_t bestIndex = std::numeric_limits<size_t>::max();
 			
@@ -67,6 +87,24 @@ namespace bbn {
 			if (index) *index = bestIndex;
 
 			return bestIndex != std::numeric_limits<size_t>::max();
+		}
+
+		/* Find all neighbors within the specified radius.*/
+		inline bool findAllWithinRadius(const VectorT &query, typename VectorT::Scalar radius, std::vector<size_t> &indices, std::vector<typename VectorT::Scalar> &dists2) const {
+
+			indices.clear();
+			dists2.clear();
+
+			const typename VectorT::Scalar r2 = radius * radius;
+			for (size_t i = 0; i < _points.size(); ++i) {
+				const float d = (query - _points[i]).squaredNorm();
+				if (d <= r2) {
+					indices.push_back(i);
+					dists2.push_back(d);
+				}
+			}
+
+			return indices.size() > 0;
 		}
 
 	private:

@@ -35,7 +35,7 @@ namespace bbn {
 
 			/** Defaults */
 			Params()
-				:bucketResolution(0.05)
+				:bucketResolution(typename VectorT::Scalar(0.05))
 			{}
 		};
 
@@ -48,6 +48,13 @@ namespace bbn {
 		inline HashtableLocator(const Params &p)
 			: _bucketSize(p.bucketResolution), _invBucketResolution(1.f / p.bucketResolution)
 		{}
+
+		/* Reset to empty state*/
+		void reset()
+		{
+			_points.clear();
+			_bucketHash.clear();
+		}
 
 		/** Add a new point. */
 		void add(const VectorT &point)
@@ -68,8 +75,18 @@ namespace bbn {
 			}
 		}
 
+		/** Number of dimensions. */
+		size_t dims() const
+		{
+			if (_points.empty()) {
+				return VectorT::RowsAtCompileTime;
+			} else {
+				return _points.front().rows();
+			}
+		}
+
 		/* Find any neighbor within the specified radius.*/
-		inline bool findAnyWithinRadius(const VectorT &query, typename VectorT::Scalar radius, size_t *index = 0, typename VectorT::Scalar *dist2 = 0) {			
+		inline bool findAnyWithinRadius(const VectorT &query, typename VectorT::Scalar radius, size_t *index = 0, typename VectorT::Scalar *dist2 = 0) const {			
 			typename VectorT::Scalar bestDist2 = radius * radius;
 			size_t bestIndex = std::numeric_limits<size_t>::max();
 
@@ -104,6 +121,39 @@ namespace bbn {
 			if (index) *index = bestIndex;
 
 			return bestIndex != std::numeric_limits<size_t>::max();
+		}
+
+		/* Find all neighbors within the specified radius.*/
+		inline bool findAllWithinRadius(const VectorT &query, typename VectorT::Scalar radius, std::vector<size_t> &indices, std::vector<typename VectorT::Scalar> &dists2) const {
+			const typename VectorT::Scalar r2 = radius * radius;
+
+			indices.clear();
+			dists2.clear();
+
+			Bucket minCorner, maxCorner;
+			ballToBuckets(query, radius, _invBucketResolution, minCorner, maxCorner);
+
+			BucketRangeIterator begin = BucketRangeIterator(minCorner, maxCorner);
+			BucketRangeIterator end;
+
+			for (BucketRangeIterator biter = begin; biter != end; ++biter) {
+
+				if (!testBallOverlapsBucket(query, radius, *biter, _bucketSize))
+					continue;
+
+				typename BucketHash::const_iterator iter = _bucketHash.find(*biter);
+				if (iter != _bucketHash.end()) {
+					for (size_t i = 0; i < iter->second.size(); ++i) {
+						const float d = (query - _points[iter->second[i]]).squaredNorm();
+						if (d <= bestDist2) {
+							indices.push_back(iter->second[i]);
+							dists2.push_back(d);
+						}
+					}
+				}
+			}
+
+			return indices.size() > 0;
 		}
 
 	private:	
