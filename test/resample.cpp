@@ -81,7 +81,5 @@ int main(int argc, const char **argv) {
         std::cerr << "Failed to load pointcloud from file" << std::endl;
     }
     
-    
-    
     return 0;
 }

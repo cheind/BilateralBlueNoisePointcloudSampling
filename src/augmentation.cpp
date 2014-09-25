@@ -14,6 +14,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <bbn/augmentation.h>
+#include <bbn/stacking.h>
 
 namespace bbn {
 
@@ -22,11 +23,10 @@ namespace bbn {
 		std::vector<Eigen::Vector6f> &stacked,
 		float pointWeight, float normalWeight)
 	{
+		Stacking<Eigen::Vector3f, Eigen::Vector3f> s(pointWeight, normalWeight);
+
 		for (size_t i = 0; i < points.size(); ++i) {
-			Eigen::Vector6f v;
-			v.block<3, 1>(0, 0) = points[i] * pointWeight;
-			v.block<3, 1>(3, 0) = normals[i] * normalWeight;
-			stacked.push_back(v);
+			stacked.push_back(s(points[i], normals[i]));
 		}
 
 		return true;
