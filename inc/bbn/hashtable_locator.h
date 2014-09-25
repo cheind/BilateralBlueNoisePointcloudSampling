@@ -145,7 +145,7 @@ namespace bbn {
 				if (iter != _bucketHash.end()) {
 					for (size_t i = 0; i < iter->second.size(); ++i) {
 						const float d = (query - _points[iter->second[i]]).squaredNorm();
-						if (d <= bestDist2) {
+						if (d <= r2) {
 							indices.push_back(iter->second[i]);
 							dists2.push_back(d);
 						}

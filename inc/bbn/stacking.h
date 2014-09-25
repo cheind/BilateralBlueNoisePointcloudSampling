@@ -28,12 +28,14 @@ namespace bbn {
 	class Stacking : std::binary_function<Position, Feature, typename detail::StackedVectorType<Position, Feature>::type>
 	{
 	public:
+        
+        typedef typename detail::StackedVectorType<Position, Feature>::type result_type;
 
 		/** Configuration Parameters */
 		struct Params {
 			/** Defaults */
 			Params()
-				: positionWeight(1), featureWeight((result_type::Scalar)0.05)
+				: positionWeight(1), featureWeight((typename result_type::Scalar)0.05)
 			{}
 
 			Params(typename result_type::Scalar pweight, typename result_type::Scalar fweight)
@@ -59,8 +61,8 @@ namespace bbn {
 		{ 
 			result_type s(p.rows() + f.rows());
 			if (result_type::SizeAtCompileTime != Eigen::Dynamic) {
-				s.block<Position::RowsAtCompileTime, 1>(0, 0) = p * _wPosition;
-				s.block<Feature::RowsAtCompileTime, 1>(p.rows(), 0) = f * _wFeature;
+				s.template block<Position::RowsAtCompileTime, 1>(0, 0) = p * _wPosition;
+				s.template block<Feature::RowsAtCompileTime, 1>(p.rows(), 0) = f * _wFeature;
 			} else {
 				s.block(0, 0, p.rows(), 1) = p * _wPosition;
 				s.block(p.rows(), 0, f.rows(), 1) = f * _wFeature;
