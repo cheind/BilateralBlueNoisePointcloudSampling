@@ -42,14 +42,16 @@ endif()
 # Setup library
 set(BBN_SOURCES
 	inc/bbn/eigen_types.h
+	inc/bbn/task_traits.h
 	inc/bbn/meta.h
-	inc/bbn/normalization.h
-	inc/bbn/dart_throwing.h	
 	inc/bbn/util.h
 	inc/bbn/stacking.h
 	inc/bbn/bruteforce_locator.h
-	inc/bbn/hashtable_locator.h
-	
+	inc/bbn/hashtable_locator.h	
+	inc/bbn/normalization.h
+	inc/bbn/dart_throwing.h	
+	inc/bbn/energy_minimization.h	
+
 	src/normalization.cpp
 )
 

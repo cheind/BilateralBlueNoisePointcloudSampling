@@ -17,6 +17,7 @@
 #include <iostream>
 #include "io_pointcloud.h"
 
+#include <bbn/task_traits.h>
 #include <bbn/normalization.h>
 #include <bbn/dart_throwing.h>
 #include <bbn/bruteforce_locator.h>
@@ -45,11 +46,14 @@ int main(int argc, const char **argv) {
 	if (!bbn::normalizeSize(points, normals, undoScale)) {
 		std::cerr << "Failed to normalize size of pointcloud" << std::endl;
 	}
-    
+
+	typedef bbn::TaskTraits< Eigen::Vector3f, Eigen::Vector3f, true> R3Traits;
+
+   
 	// Resample by dart throwing.
 	std::vector<size_t> outputIds;
 
-	bbn::AugmentedDartThrowing adt;
+	bbn::DartThrowing<R3Traits> adt;
 	adt.setConflictRadius(0.01f);
 	adt.setRandomSeed(10);
     
