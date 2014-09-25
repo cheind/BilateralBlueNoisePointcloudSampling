@@ -17,6 +17,8 @@
 #define BBN_META_H
 
 #include <Eigen/Dense>
+#include <bbn/bruteforce_locator.h>
+#include <bbn/hashtable_locator.h>
 
 namespace bbn {
 	namespace detail {
@@ -45,6 +47,18 @@ namespace bbn {
 				1
 			> type;
 		};
+
+
+		template<typename Vector, bool UseAcceleration>
+		struct LocatorType {
+			typedef BruteforceLocator<Vector> type;
+		};
+
+		template<typename Vector>
+		struct LocatorType<Vector, true> {
+			typedef HashtableLocator<Vector> type;
+		};
+
 
 	}
 }
