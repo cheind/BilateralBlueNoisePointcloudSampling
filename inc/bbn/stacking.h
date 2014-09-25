@@ -28,14 +28,30 @@ namespace bbn {
 	class Stacking : std::binary_function<Position, Feature, typename detail::StackedVectorType<Position, Feature>::type>
 	{
 	public:
+
+		/** Configuration Parameters */
+		struct Params {
+			/** Defaults */
+			Params()
+				: positionWeight(1), featureWeight((result_type::Scalar)0.05)
+			{}
+
+			Params(typename result_type::Scalar pweight, typename result_type::Scalar fweight)
+				: positionWeight(pweight), featureWeight(fweight)
+			{}
+
+			typename result_type::Scalar positionWeight;
+			typename result_type::Scalar featureWeight;
+		};
+
 		/** Create stacking function with defaults. */
 		Stacking()
 			:_wPosition(1), _wFeature(result_type::Scalar(0.05))
 		{}
 
 		/** Create stacking function with custom weights. */
-		Stacking(typename result_type::Scalar pweight, typename result_type::Scalar fweight)
-			:_wPosition(pweight), _wFeature(fweight)
+		Stacking(const Params &p)
+			:_wPosition(p.positionWeight), _wFeature(p.featureWeight)
 		{}
 
 		/** Stack position and feature vector into a single vector. */
