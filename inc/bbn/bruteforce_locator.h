@@ -27,6 +27,11 @@ namespace bbn {
 	template<class VectorT>
 	class BruteforceLocator {
 	public:
+
+		/* Configuration Parameters */
+		struct Params {
+		};
+
 		/* Construct empty locator*/
 		inline BruteforceLocator()
 		{}

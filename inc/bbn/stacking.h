@@ -30,7 +30,7 @@ namespace bbn {
 	public:
 		/** Create stacking function with defaults. */
 		Stacking()
-			:_wPosition(1), _wFeature(0.05)
+			:_wPosition(1), _wFeature(result_type::Scalar(0.05))
 		{}
 
 		/** Create stacking function with custom weights. */
@@ -45,7 +45,7 @@ namespace bbn {
 			if (result_type::SizeAtCompileTime != Eigen::Dynamic) {
 				s.block<Position::RowsAtCompileTime, 1>(0, 0) = p * _wPosition;
 				s.block<Feature::RowsAtCompileTime, 1>(p.rows(), 0) = f * _wFeature;
-			} else{
+			} else {
 				s.block(0, 0, p.rows(), 1) = p * _wPosition;
 				s.block(p.rows(), 0, f.rows(), 1) = f * _wFeature;
 			}

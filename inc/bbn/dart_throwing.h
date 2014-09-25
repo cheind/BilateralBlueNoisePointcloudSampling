@@ -19,7 +19,7 @@
 #include <Eigen/Dense>
 #include <vector>
 #include <bbn/util.h>
-#include <bbn/eigen_types.h>
+#include <bbn/stacking.h>
 
 namespace bbn {
     
@@ -48,34 +48,39 @@ namespace bbn {
 		}
         
         /** Resample input point cloud. */
-		template<class Locator>
-        bool resample(const std::vector<Eigen::Vector6f> &source,					  
+		template<typename Position, typename Feature>
+        bool resample(const std::vector<Position> &positions,
+					  const std::vector<Feature> &features,		  
 					  std::vector<size_t> &outputIds)
         {
-			if (source.empty())
+			if (positions.empty() || positions.size() != features.size())
                 return false;
 
 			
             // Build a random array of sample indices
             std::vector<size_t> sampleIndices;
-			sampleIndices.reserve(source.size());
-			for (size_t i = 0; i < source.size(); ++i)
+			sampleIndices.reserve(positions.size());
+			for (size_t i = 0; i < positions.size(); ++i)
                 sampleIndices.push_back(i);
             std::random_shuffle(sampleIndices.begin(), sampleIndices.end());
+
+			typedef typename detail::StackedVectorType<Position, Feature>::type StackedVector;
+			typedef Stacking<Position, Feature> Stacker;
+			typedef typename HashtableLocator<StackedVector> Locator;
                       
-            // Loop over samples and try to add one after another.
-			//Locator loc(100);
+            // Loop over samples and try to add one after another.			
 			Locator loc;
+			Stacker s;
 			outputIds.clear();
             
             int attempt = 0;            
 			size_t id = 0;
             while (id < sampleIndices.size() && attempt < _n) {
 				size_t pointId = sampleIndices[id];
-				const Eigen::Vector6f &p = source[pointId];
+				StackedVector sv = s(positions[pointId], features[pointId]);
                
-				if (!loc.findAnyWithinRadius(p, _conflictRadius)) {
-					loc.add(p);
+				if (!loc.findAnyWithinRadius(sv, _conflictRadius)) {
+					loc.add(sv);
 					outputIds.push_back(pointId);
 					attempt = 0;
                 } else {
@@ -84,7 +89,7 @@ namespace bbn {
                 
                 if (id % 5000 == 0) {
                     BBN_LOG("Processed %.2f - Generated %d of possible %d output samples\n",
-                            (float)id / source.size() * 100, (int)outputIds.size(), (int)id);
+							(float)id / positions.size() * 100, (int)outputIds.size(), (int)id);
                 }
                 ++id;
             }

@@ -28,14 +28,25 @@ namespace bbn {
 	template<class VectorT>
 	class HashtableLocator {
 	public:
+
+		/** Configuration Parameters */
+		struct Params {
+			float bucketResolution;
+
+			/** Defaults */
+			Params()
+				:bucketResolution(0.05)
+			{}
+		};
+
 		/* Construct empty locator*/
 		inline HashtableLocator()
 			: _bucketSize(0.05f), _invBucketResolution(1.f / 0.05f)
 		{}
 
 		/* Construct with resolution */
-		inline HashtableLocator(typename VectorT::Scalar resolution)
-			: _bucketSize(resolution), _invBucketResolution(1.f / resolution)
+		inline HashtableLocator(const Params &p)
+			: _bucketSize(p.bucketResolution), _invBucketResolution(1.f / p.bucketResolution)
 		{}
 
 		/** Add a new point. */

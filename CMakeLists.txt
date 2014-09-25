@@ -49,10 +49,8 @@ set(BBN_SOURCES
 	inc/bbn/stacking.h
 	inc/bbn/bruteforce_locator.h
 	inc/bbn/hashtable_locator.h
-	inc/bbn/augmentation.h
 	
 	src/normalization.cpp
-	src/augmentation.cpp
 )
 
 include_directories(inc)
