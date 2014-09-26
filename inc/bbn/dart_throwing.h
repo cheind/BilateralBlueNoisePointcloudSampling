@@ -53,8 +53,8 @@ namespace bbn {
 		}
         
         /** Resample input point cloud. */
-		bool resample(const std::vector<typename TaskTraitsType::PositionVector> &positions,
-					  const std::vector<typename TaskTraitsType::FeatureVector> &features,
+		bool resample(const typename TaskTraitsType::ArrayOfPositionVector &positions,
+					  const typename TaskTraitsType::ArrayOfFeatureVector &features,
 					  std::vector<size_t> &outputIds)
         {
 			if (positions.empty() || positions.size() != features.size())

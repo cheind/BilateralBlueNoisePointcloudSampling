@@ -23,13 +23,13 @@
 namespace bbn {
 
 	/* Normalizes the pointclouds position and orientation using PCA. Returns the inverse transform. */
-	bool normalizeOrientationAndTranslation(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, Eigen::Affine3f &invTransform);
+	bool normalizeOrientationAndTranslation(std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &points, std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &normals, Eigen::Affine3f &invTransform);
 
 	/* Normalizes the pointclouds size through a uniform scaling such that the longest side of the AABB becomes unit length. Assumes normalized rotation/translation.  */
-	bool normalizeSize(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, Eigen::Affine3f &invTransform);
+	bool normalizeSize(std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &points, std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &normals, Eigen::Affine3f &invTransform);
 
 	/* Apply a general affine transformation to a pointcloud. */
-	bool applyTransform(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, const Eigen::Affine3f &t);
+	bool applyTransform(std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &points, std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &normals, const Eigen::Affine3f &t);
    
 }
 

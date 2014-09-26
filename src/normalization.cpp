@@ -17,7 +17,7 @@
 
 namespace bbn {
 
-	bool normalizeOrientationAndTranslation(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, Eigen::Affine3f &invTransform) 
+	bool normalizeOrientationAndTranslation(std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &points, std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &normals, Eigen::Affine3f &invTransform)
 	{
 		if (points.empty())
 			return false;
@@ -42,7 +42,7 @@ namespace bbn {
 		return true;
 	}
 
-	bool normalizeSize(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, Eigen::Affine3f &invTransform)
+	bool normalizeSize(std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &points, std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &normals, Eigen::Affine3f &invTransform)
 	{
 		// Assumes normalized rotation/translation
 		Eigen::AlignedBox3f aabb;
@@ -65,7 +65,7 @@ namespace bbn {
 		return true;
 	}
     
-	bool applyTransform(std::vector<Eigen::Vector3f> &points, std::vector<Eigen::Vector3f> &normals, const Eigen::Affine3f &t)
+	bool applyTransform(std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &points, std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &normals, const Eigen::Affine3f &t)
     {
         const Eigen::Matrix3f normalMatrix = t.linear().inverse().transpose();
         for (size_t i = 0; i < points.size(); ++i) {

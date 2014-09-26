@@ -20,8 +20,7 @@
 #include <bbn/task_traits.h>
 #include <bbn/normalization.h>
 #include <bbn/dart_throwing.h>
-#include <bbn/bruteforce_locator.h>
-#include <bbn/hashtable_locator.h>
+#include <bbn/energy_minimization.h>
 
 int main(int argc, const char **argv) {
     
@@ -32,7 +31,7 @@ int main(int argc, const char **argv) {
     }
     
 	// Load from file.
-    std::vector<Eigen::Vector3f> points, normals;
+	std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > points, normals;
     if (!loadPointcloudFromXYZFile(argv[1], points, normals)) {
         std::cerr << "Failed to load pointcloud from file" << std::endl;
     }
@@ -62,11 +61,15 @@ int main(int argc, const char **argv) {
     }
 
 	// Create output
-	std::vector<Eigen::Vector3f> resampledPoints, resampledNormals;
+	R3Traits::ArrayOfPositionVector resampledPoints, resampledNormals;
 	for (size_t i = 0; i < outputIds.size(); ++i) {
 		resampledPoints.push_back(points[outputIds[i]]);
 		resampledNormals.push_back(normals[outputIds[i]]);
 	}
+
+	//bbn::EnergyMinimization<R3Traits> em;
+	//em.setKernelSigma(0.01f);
+	//em.minimize(resampledPoints, resampledNormals, resampledPoints, resampledNormals, 20);
     
 	// Restore original dimensions.
 	Eigen::Affine3f undoCombined = undoRotTrans * undoScale;

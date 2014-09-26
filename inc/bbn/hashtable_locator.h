@@ -56,6 +56,18 @@ namespace bbn {
 			_bucketHash.clear();
 		}
 
+
+		/** Number of dimensions. */
+		typename  VectorT::Index dims() const
+		{
+			if (_points.empty()) {
+				return VectorT::RowsAtCompileTime;
+			}
+			else {
+				return _points.front().rows();
+			}
+		}
+
 		/** Add a new point. */
 		void add(const VectorT &point)
 		{
@@ -75,14 +87,10 @@ namespace bbn {
 			}
 		}
 
-		/** Number of dimensions. */
-		size_t dims() const
+		/** Get the i-th stored point. */
+		const VectorT &get(size_t index) const
 		{
-			if (_points.empty()) {
-				return VectorT::RowsAtCompileTime;
-			} else {
-				return _points.front().rows();
-			}
+			return _points[index];
 		}
 
 		/* Find any neighbor within the specified radius.*/

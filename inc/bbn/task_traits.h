@@ -18,6 +18,7 @@
 
 #include <bbn/meta.h>
 #include <bbn/stacking.h>
+#include <vector>
 
 namespace bbn {
 
@@ -35,6 +36,9 @@ namespace bbn {
 		typedef typename detail::LocatorType<PositionVector, UseAcceleration>::type PositionLocator;
 		typedef Stacking<PositionVector, FeatureVector> Stacker;
 		typedef typename StackedVector::Scalar Scalar;
+		typedef std::vector<PositionVector, Eigen::aligned_allocator<PositionVector> > ArrayOfPositionVector;
+		typedef std::vector<FeatureVector, Eigen::aligned_allocator<FeatureVector> > ArrayOfFeatureVector;
+		typedef std::vector<StackedVector, Eigen::aligned_allocator<StackedVector> > ArrayOfStackedVector;
 
 		TaskTraits()
 		{}

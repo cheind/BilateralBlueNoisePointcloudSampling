@@ -46,7 +46,7 @@ namespace bbn {
 		}
 
 		/** Number of dimensions. */
-		size_t dims() const
+		typename VectorT::Index dims() const
 		{
 			if (_points.empty()) {
 				return VectorT::RowsAtCompileTime;
@@ -67,6 +67,12 @@ namespace bbn {
 		void add(VectorTIter begin, VectorTIter end)
 		{
 			_points.insert(_points.end(), begin, end);
+		}
+
+		/** Get the i-th stored point. */
+		const VectorT &get(size_t index) const
+		{
+			return _points[index];
 		}
 
 		/* Find any neighbor within the specified radius.*/

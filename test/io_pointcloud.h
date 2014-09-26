@@ -21,8 +21,8 @@
     Each row in the file is composed of the following six values px py pz nx ny nz and describes a single point/normal pair. */
 bool loadPointcloudFromXYZFile(
                             const char *path,
-                            std::vector<Eigen::Vector3f> &points,
-                            std::vector<Eigen::Vector3f> &normals)
+							std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &points,
+							std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &normals)
 {
     static const char *format = "%f %f %f %f %f %f";
     
@@ -53,8 +53,8 @@ bool loadPointcloudFromXYZFile(
     Each row in the file is composed of the following six values px py pz nx ny nz and describes a single point/normal pair. */
 bool savePointcloudToXYZFile(
                                const char *path,
-                               const std::vector<Eigen::Vector3f> &points,
-                               const std::vector<Eigen::Vector3f> &normals)
+							   const std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &points,
+							   const std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > &normals)
 {
     static const char *format = "%g %g %g %g %g %g\n";
     
