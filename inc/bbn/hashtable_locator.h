@@ -164,6 +164,43 @@ namespace bbn {
 			return indices.size() > 0;
 		}
 
+		/* Find closest neighbor within the specified radius.*/
+		inline bool findClosestWithinRadius(const VectorT &query, typename VectorT::Scalar radius, size_t &index, typename VectorT::Scalar &dist2) const {
+
+			typename VectorT::Scalar bestDist2 = radius * radius;
+			size_t bestIndex = std::numeric_limits<size_t>::max();
+
+			Bucket minCorner, maxCorner;
+			ballToBuckets(query, radius, _invBucketResolution, minCorner, maxCorner);
+
+			BucketRangeIterator begin = BucketRangeIterator(minCorner, maxCorner);
+			BucketRangeIterator end;
+
+			for (BucketRangeIterator biter = begin; biter != end; ++biter) {
+
+				if (!testBallOverlapsBucket(query, radius, *biter, _bucketSize))
+					continue;
+
+				typename BucketHash::const_iterator iter = _bucketHash.find(*biter);
+				if (iter != _bucketHash.end()) {
+					for (size_t i = 0; i < iter->second.size(); ++i) {
+						const float d = (query - _points[iter->second[i]]).squaredNorm();
+						if (d <= bestDist2) {
+							bestDist2 = d;
+							bestIndex = iter->second[i];
+							radius = std::sqrt(bestDist2);
+						}
+					}
+				}
+			}
+
+
+			dist2 = bestDist2;
+			index = bestIndex;
+
+			return bestIndex != std::numeric_limits<size_t>::max();
+		}
+
 	private:	
 
 		/* An bucket in n-dimensions. */

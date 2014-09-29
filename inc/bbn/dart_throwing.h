@@ -87,11 +87,14 @@ namespace bbn {
                 }
                 
                 if (id % 5000 == 0) {
-                    BBN_LOG("Processed %.2f - Generated %d of possible %d output samples\n",
+                    BBN_LOG("Dart throwing %.2f%% - Generated %d of possible %d output samples\r",
 							(float)id / positions.size() * 100, (int)outputIds.size(), (int)id);
                 }
                 ++id;
             }
+
+			BBN_LOG("Dart throwing 100.00%% - Generated %d of possible %d output samples\n",
+					(int)outputIds.size(), (int)id);
             
             if (attempt >= _n) {
                 BBN_LOG("Failed to generate new samples, giving up.\n");

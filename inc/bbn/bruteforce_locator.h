@@ -113,6 +113,26 @@ namespace bbn {
 			return indices.size() > 0;
 		}
 
+		/* Find closest neighbor within the specified radius.*/
+		inline bool findClosestWithinRadius(const VectorT &query, typename VectorT::Scalar radius, size_t &index, typename VectorT::Scalar &dist2) const {
+
+			typename VectorT::Scalar bestDist2 = radius * radius + 0.01f;
+			size_t bestIndex = std::numeric_limits<size_t>::max();
+
+			for (size_t i = 0; i < _points.size(); ++i) {
+				const float d = (query - _points[i]).squaredNorm();
+				if (d < bestDist2) {
+					bestDist2 = d;
+					bestIndex = i;
+				}
+			}
+
+			dist2 = bestDist2;
+			index = bestIndex;
+
+			return bestIndex != std::numeric_limits<size_t>::max();
+		}
+
 	private:
 		typedef std::vector<VectorT, Eigen::aligned_allocator<VectorT> > ArrayOfVectorT;
 		ArrayOfVectorT _points;

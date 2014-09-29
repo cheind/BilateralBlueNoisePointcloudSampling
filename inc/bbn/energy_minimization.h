@@ -53,10 +53,12 @@ namespace bbn {
 		}
         
         /** Minimize samples based on energy formulation. */
+		template<class ConstrainFnc>
 		bool minimize(const ArrayOfPositionVector &positions,
 					  const ArrayOfFeatureVector &features,
 					  ArrayOfPositionVector &resultPositions,
 					  ArrayOfFeatureVector &resultFeatures,
+					  const ConstrainFnc &fnc,
 					  size_t nIterations)
         {
 			if (positions.empty() || positions.size() != features.size())
@@ -102,18 +104,18 @@ namespace bbn {
 					nextPositions[i] = curPositions[i] - _stepSize * g.topRows(nPositionRows);
 					nextFeatures[i] = curFeatures[i];
 
-					if (i % 100 == 0) {
-						BBN_LOG("Processed %.2f in energy minimization \n",
-							(float)i / nElements * 100);
-					}
-
 					// Constrain sample position /feature
-					// TODO
+					fnc(nextPositions[i], nextFeatures[i]);
 				}
+
+				BBN_LOG("Energy minimization %.2f%%\r",
+					(float)iter / nIterations * 100);
 
 				index = nextIndex;
 				nextIndex = (nextIndex + 1) % 2;
 			}
+
+			BBN_LOG("Energy minimization 100.00%%\n");
 
 			resultPositions = pposes[index];
 			resultFeatures = pfeatures[index];
@@ -133,7 +135,7 @@ namespace bbn {
 			std::vector<Scalar> neighborDists2;
 			const StackedVector &query = loc.get(queryIndex);
 
-			if (!loc.findAllWithinRadius(query, _sigma * 2, neighborIds, neighborDists2))
+			if (!loc.findAllWithinRadius(query, _sigma * Scalar(2.576), neighborIds, neighborDists2))
 				return g;
 
 			const Scalar sigmaSquared = _sigma * _sigma;

@@ -67,12 +67,24 @@ int main(int argc, const char **argv) {
 		resampledNormals.push_back(normals[outputIds[i]]);
 	}
 
-	//bbn::EnergyMinimization<R3Traits> em;
-	//em.setKernelSigma(0.01f);
-	//em.minimize(resampledPoints, resampledNormals, resampledPoints, resampledNormals, 20);
+	R3Traits::PositionLocator ploc;
+	ploc.add(points.begin(), points.end());
+
+	bbn::EnergyMinimization<R3Traits> em;
+	em.setKernelSigma(0.01f);
+	em.minimize(resampledPoints, resampledNormals, resampledPoints, resampledNormals, [&](R3Traits::PositionVector &p, R3Traits::FeatureVector &f) {
+		/*size_t idx;
+		float dist2;
+		if (!ploc.findClosestWithinRadius(p, 0.1f, idx, dist2))
+			return;
+
+		p = points[idx];
+		f = normals[idx];*/
+
+	}, 10);
     
 	// Restore original dimensions.
-	Eigen::Affine3f undoCombined = undoRotTrans * undoScale;
+	Eigen::Affine3f undoCombined = undoRotTrans;// * undoScale;
 	if (!bbn::applyTransform(resampledPoints, resampledNormals, undoCombined)) {
         std::cerr << "Failed to undo pointcloud scaling" << std::endl;
     }
