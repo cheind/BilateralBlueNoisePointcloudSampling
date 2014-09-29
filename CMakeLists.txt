@@ -23,6 +23,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/CMakeModules/"
 
 # Dependencies
 find_package(Eigen REQUIRED)
+find_package(OpenCV)
 add_definitions(${Eigen_DEFINITIONS})
 include_directories(${Eigen_INCLUDE_DIRS})
 
@@ -61,3 +62,9 @@ add_library(bbn ${BBN_SOURCES})
 # Setup tests
 add_executable(resample test/io_pointcloud.h test/resample.cpp)
 target_link_libraries(resample bbn)
+
+if (OpenCV_FOUND)
+	include_directories(${OpenCV_INCLUDE_DIRS})
+	add_executable(resample_image test/resample_image.cpp)
+	target_link_libraries(resample_image bbn ${OpenCV_LIBS})
+endif()

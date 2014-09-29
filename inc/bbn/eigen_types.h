@@ -20,6 +20,7 @@
 
 namespace Eigen {
 	typedef Matrix<float, 6, 1> Vector6f;
+	typedef Matrix<float, 1, 1> Vector1f;
 	typedef Matrix<int, 6, 1> Vector6i;
 }
 
