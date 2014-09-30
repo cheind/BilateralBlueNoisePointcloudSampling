@@ -20,7 +20,7 @@
 #include <bbn/normalization.h>
 #include <bbn/dart_throwing.h>
 #include <bbn/energy_minimization.h>
-
+#include <ctime>
 #include <iostream>
 
 typedef bbn::TaskTraits< Eigen::Vector2f, Eigen::Vector1f, true> ImageTraits;
@@ -30,9 +30,9 @@ void createImage(cv::Mat &img, const ImageTraits::ArrayOfPositionVector &positio
 	img.setTo(255);
 
 	static cv::Scalar colors[] = {
-		cv::Scalar(0, 0, 0),
-		cv::Scalar(0, 255, 0),
+		cv::Scalar(0, 0, 0), 
 		cv::Scalar(255, 0, 0),
+		cv::Scalar(0, 255, 0),
 		cv::Scalar(0, 0, 255)
 	};
 
@@ -41,7 +41,7 @@ void createImage(cv::Mat &img, const ImageTraits::ArrayOfPositionVector &positio
 			cvRound(positions[i].x()*img.cols),
 			cvRound(positions[i].y()*img.rows));
 
-		cv::Scalar c = colors[cvRound(features[i].x())];
+		cv::Scalar c = colors[cvRound(features[i].x() * 3)];
 		cv::circle(img, pix, 2, c, CV_FILLED);
 	}
 }
@@ -60,13 +60,22 @@ int main(int argc, const char **argv)
 		for (float y = 0; y < 1.f; y += spacing) {
 			positions.push_back(Eigen::Vector2f(x, y));
 			positions.push_back(Eigen::Vector2f(x, y));
+			positions.push_back(Eigen::Vector2f(x, y));
+			positions.push_back(Eigen::Vector2f(x, y));
+
 			
 			Eigen::Vector1f f;
 			f(0) = 0;
 			features.push_back(f);
 
-			f(0) = 1;
+			f(0) = 1.f / 3;
 			features.push_back(f);			
+
+			f(0) = 2.f / 3;
+			features.push_back(f);
+
+			f(0) = 1;
+			features.push_back(f);
 		}
 	}
 
@@ -78,6 +87,7 @@ int main(int argc, const char **argv)
 	adt.setConflictRadius(0.05f);
 	adt.setRandomSeed(10);
 	adt.setMaximumAttempts(1000000);
+	adt.setRandomSeed(time(NULL));
     
 	if (!adt.resample(positions, features, outputIds)) {
         std::cerr << "Failed to throw darts." << std::endl;

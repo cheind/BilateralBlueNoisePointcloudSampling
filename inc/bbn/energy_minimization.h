@@ -91,6 +91,8 @@ namespace bbn {
 			// Loop
 			int index = 0, nextIndex = 1;
 			const PositionVector::Index nPositionRows = positions.front().rows();
+			StackedVector gradient;
+			Scalar totalEnergy = 0;
 			for (size_t iter = 0; iter < nIterations; ++iter) {
 				
 				ArrayOfPositionVector &curPositions = pposes[index];
@@ -104,28 +106,30 @@ namespace bbn {
 					sloc.add(stack(curPositions[i], curFeatures[i]));
 				}
 
+				totalEnergy = 0;
 				// For each element
 				for (size_t i = 0; i < nElements; ++i) {
 
 					// Determine energy gradient as described in equation 14.
-					StackedVector g = energyGradient(i, sloc);
+
+					totalEnergy += energy(i, sloc, gradient);
 					
 					// Move sample position / feature
-					nextPositions[i] = curPositions[i] - _stepSize * g.topRows(nPositionRows);
+					nextPositions[i] = curPositions[i] - _stepSize * gradient.topRows(nPositionRows);
 					nextFeatures[i] = curFeatures[i];
 
 					// Constrain sample position /feature
 					fnc(nextPositions[i], nextFeatures[i]);
 				}
 
-				BBN_LOG("Energy minimization %.2f%%\r",
-					(float)iter / nIterations * 100);
+				BBN_LOG("Energy minimization %.2f%% - Total energy %.2f\r",
+					(float)iter / nIterations * 100, totalEnergy);
 
 				index = nextIndex;
 				nextIndex = (nextIndex + 1) % 2;
 			}
 
-			BBN_LOG("Energy minimization 100.00%%\n");
+			BBN_LOG("Energy minimization 100.00%% - Total energy %.2f\n", totalEnergy);
 
 			resultPositions = pposes[index];
 			resultFeatures = pfeatures[index];
@@ -137,16 +141,17 @@ namespace bbn {
         
     private:
 
-		StackedVector energyGradient(size_t queryIndex, const StackedLocator &loc) const
+		Scalar energy(size_t queryIndex, const StackedLocator &loc, StackedVector &gradient) const
 		{
-			StackedVector g = StackedVector::Zero(loc.dims());
+			gradient = StackedVector::Zero(loc.dims());
+			Scalar energy = 0;
 
 			std::vector<size_t> neighborIds;
 			std::vector<Scalar> neighborDists2;
 			const StackedVector &query = loc.get(queryIndex);
 
 			if (!loc.findAllWithinRadius(query, _maxSearchRadius, neighborIds, neighborDists2))
-				return g;
+				return energy;
 
 			const Scalar sigmaSquared = _sigma * _sigma;
 			const Scalar oneOverSigmaSquared = 1 / sigmaSquared;
@@ -155,11 +160,14 @@ namespace bbn {
 				if (neighborIds[nidx] == queryIndex)
 					continue; // don't include self
 				
-				const StackedVector &n = loc.get(neighborIds[nidx]);			
-				g += (n - query) * oneOverSigmaSquared * exp(-neighborDists2[nidx] * Scalar(0.5) * oneOverSigmaSquared);
+				const StackedVector &n = loc.get(neighborIds[nidx]);
+				const Scalar e = exp(-neighborDists2[nidx] * Scalar(0.5) * oneOverSigmaSquared);
+
+				energy += e;
+				gradient += (n - query) * oneOverSigmaSquared * e;
 			}
 
-			return g;
+			return energy;
 		}
 
 
