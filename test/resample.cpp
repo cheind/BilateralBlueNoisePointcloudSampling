@@ -72,14 +72,16 @@ int main(int argc, const char **argv) {
 
 	bbn::EnergyMinimization<R3Traits> em;
 	em.setKernelSigma(0.01f);
+	em.setStepSize(0.45f * 0.01f * 0.01f);
+	em.setMaximumSearchRadius(0.2f);
 	em.minimize(resampledPoints, resampledNormals, resampledPoints, resampledNormals, [&](R3Traits::PositionVector &p, R3Traits::FeatureVector &f) {
-		/*size_t idx;
+		size_t idx;
 		float dist2;
 		if (!ploc.findClosestWithinRadius(p, 0.1f, idx, dist2))
 			return;
 
 		p = points[idx];
-		f = normals[idx];*/
+		f = normals[idx];
 
 	}, 10);
     

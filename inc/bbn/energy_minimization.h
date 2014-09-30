@@ -37,21 +37,31 @@ namespace bbn {
 
         /** Default constructor. */
 		EnergyMinimization()
-			: _sigma(Scalar(0.1f)),
-			_stepSize(Scalar(0.45f) * _sigma * _sigma)
+			: _sigma(Scalar(0.03f)),
+			  _stepSize(Scalar(0.03f) * _sigma * _sigma),
+			  _maxSearchRadius(Scalar(0.03f) * Scalar(2.576))
         {}        
         
         /* Set the conflict radius that determines the resampling resolution. */
 		void setKernelSigma(Scalar s) {
             _sigma = s;
-			_stepSize = Scalar(0.45f) * _sigma * _sigma;
         }
+
+		/* Set gradient descent step size. */
+		void setStepSize(Scalar s) {
+			_stepSize = s;
+		}
+
+		/* Set maximum search radius for neighbors. */
+		void setMaximumSearchRadius(Scalar s) {
+			_maxSearchRadius = s;
+		}
        
 		/* Set parameters specific to traits. */
 		void setTaskTraits(const TaskTraitsType &t) {
 			_traits = t;
 		}
-        
+
         /** Minimize samples based on energy formulation. */
 		template<class ConstrainFnc>
 		bool minimize(const ArrayOfPositionVector &positions,
@@ -135,7 +145,7 @@ namespace bbn {
 			std::vector<Scalar> neighborDists2;
 			const StackedVector &query = loc.get(queryIndex);
 
-			if (!loc.findAllWithinRadius(query, _sigma * Scalar(2.576), neighborIds, neighborDists2))
+			if (!loc.findAllWithinRadius(query, _maxSearchRadius, neighborIds, neighborDists2))
 				return g;
 
 			const Scalar sigmaSquared = _sigma * _sigma;
@@ -153,7 +163,7 @@ namespace bbn {
 		}
 
 
-		Scalar _sigma, _stepSize;
+		Scalar _sigma, _stepSize, _maxSearchRadius;
         TaskTraitsType _traits;
     };
 }

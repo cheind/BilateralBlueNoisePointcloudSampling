@@ -92,6 +92,8 @@ int main(int argc, const char **argv)
 
 	bbn::EnergyMinimization<ImageTraits> em;
 	em.setKernelSigma(0.03f);
+	em.setStepSize(0.45f * 0.03f * 0.03f);
+	em.setMaximumSearchRadius(0.2f);
 
 	cv::Mat img(imageSize, imageSize, CV_8UC3);
 	createImage(img, resampledPositions, resampledFeatures);
