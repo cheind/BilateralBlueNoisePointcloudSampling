@@ -22,6 +22,33 @@
 #include <bbn/dart_throwing.h>
 #include <bbn/energy_minimization.h>
 
+typedef bbn::TaskTraits<float, 3, 3> R3Traits;
+typedef std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > ArrayOfVector;
+typedef bbn::Stacking<Eigen::Vector3f, Eigen::Vector3f> Stacker;
+
+class PointSampler {
+public:	
+	PointSampler(ArrayOfVector &points, ArrayOfVector &normals, Stacker &s)
+		:_points(points), _normals(normals), _s(s)
+	{
+		_sampleIndices.reserve(_points.size());
+		for (size_t i = 0; i < _points.size(); ++i)
+			_sampleIndices.push_back(i);
+		std::random_shuffle(_sampleIndices.begin(), _sampleIndices.end());
+	}
+
+	R3Traits::Vector operator()(void) {
+		size_t pointId = _sampleIndices[_index++];
+		return _s(_points[pointId], _normals[pointId]);				
+	}
+
+private:
+	std::vector<size_t> _sampleIndices;
+	ArrayOfVector &_points, &_normals;
+	Stacker &_s;
+	size_t _index;
+};
+
 int main(int argc, const char **argv) {
     
     if (argc != 3) {
@@ -31,7 +58,7 @@ int main(int argc, const char **argv) {
     }
     
 	// Load from file.
-	std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > points, normals;
+	ArrayOfVector points, normals;
     if (!loadPointcloudFromXYZFile(argv[1], points, normals)) {
         std::cerr << "Failed to load pointcloud from file" << std::endl;
     }
@@ -45,45 +72,50 @@ int main(int argc, const char **argv) {
 	if (!bbn::normalizeSize(points, normals, undoScale)) {
 		std::cerr << "Failed to normalize size of pointcloud" << std::endl;
 	}
-
-	typedef bbn::TaskTraits< Eigen::Vector3f, Eigen::Vector3f, true> R3Traits;
-
    
 	// Resample by dart throwing.
-	std::vector<size_t> outputIds;
-
+	R3Traits traits;
 	bbn::DartThrowing<R3Traits> adt;
+	adt.setTaskTraits(traits);
 	adt.setConflictRadius(0.01f);
-	adt.setRandomSeed(10);
+	adt.setMaximumAttempts(points.size());
+
+	Stacker stacker(Stacker::Params(1.0f, 0.05f));
+
+	PointSampler sampler(points, normals, stacker);
+	std::vector<R3Traits::Vector> sampled;
     
-	if (!adt.resample(points, normals, outputIds)) {
+	if (!adt.resample(sampler, std::back_inserter(sampled))) {
         std::cerr << "Failed to throw darts." << std::endl;
     }
 
-	// Create output
-	R3Traits::ArrayOfPositionVector resampledPoints, resampledNormals;
-	for (size_t i = 0; i < outputIds.size(); ++i) {
-		resampledPoints.push_back(points[outputIds[i]]);
-		resampledNormals.push_back(normals[outputIds[i]]);
-	}
-
-	R3Traits::PositionLocator ploc;
+	bbn::HashtableLocator<Eigen::Vector3f> ploc;
 	ploc.add(points.begin(), points.end());
 
 	bbn::EnergyMinimization<R3Traits> em;
-	em.setKernelSigma(0.01f);
-	em.setStepSize(0.45f * 0.01f * 0.01f);
-	em.setMaximumSearchRadius(0.2f);
-	em.minimize(resampledPoints, resampledNormals, resampledPoints, resampledNormals, [&](R3Traits::PositionVector &p, R3Traits::FeatureVector &f) {
+	em.setTaskTraits(traits);
+	em.setKernelSigma(0.03f);
+	em.setStepSize(0.45f * 0.005f *0.005f);
+	em.setMaximumSearchRadius(0.02f);
+	em.minimize(sampled.begin(), sampled.end(), sampled.begin(), [&](R3Traits::VectorLike p) {
+
 		size_t idx;
 		float dist2;
-		if (!ploc.findClosestWithinRadius(p, 0.1f, idx, dist2))
+		if (!ploc.findClosestWithinRadius(p.topRows(3), 0.1f, idx, dist2))
 			return;
 
-		p = points[idx];
-		f = normals[idx];
+		Eigen::Vector3f x = p.topRows(3) - points[idx];
+		Eigen::Vector3f xdash = points[idx] + (x - x.dot(normals[idx]) * normals[idx]);
 
-	}, 10);
+		p = stacker(xdash, normals[idx]);
+
+	}, 3);
+
+	ArrayOfVector resampledPoints, resampledNormals;
+	for (size_t i = 0; i < sampled.size(); ++i) {
+		resampledPoints.push_back(sampled[i].topRows(3));
+		resampledNormals.push_back(sampled[i].bottomRows(3).normalized()); // remove weight.
+	}
     
 	// Restore original dimensions.
 	Eigen::Affine3f undoCombined = undoRotTrans;// * undoScale;

@@ -24,17 +24,15 @@
 namespace bbn {
     
     /** Point based relaxation based on energy minimization. */    
-	template<class TaskTraitsType>
+	template<class Traits>
     class EnergyMinimization {
     public:
 
-		typedef typename TaskTraitsType::Scalar Scalar;
-		typedef typename TaskTraitsType::ArrayOfPositionVector ArrayOfPositionVector;
-		typedef typename TaskTraitsType::ArrayOfFeatureVector ArrayOfFeatureVector;
-		typedef typename TaskTraitsType::StackedVector StackedVector;
-		typedef typename TaskTraitsType::StackedLocator StackedLocator;
-		typedef typename TaskTraitsType::PositionVector PositionVector;
-
+		typedef typename Traits::Scalar Scalar;
+		typedef typename Traits::Vector Vector;
+		typedef typename Traits::Matrix Matrix;
+		typedef typename Traits::Locator Locator;
+		
         /** Default constructor. */
 		EnergyMinimization()
 			: _sigma(Scalar(0.03f)),
@@ -58,68 +56,67 @@ namespace bbn {
 		}
        
 		/* Set parameters specific to traits. */
-		void setTaskTraits(const TaskTraitsType &t) {
+		void setTaskTraits(const Traits &t) {
 			_traits = t;
 		}
 
         /** Minimize samples based on energy formulation. */
-		template<class ConstrainFnc>
-		bool minimize(const ArrayOfPositionVector &positions,
-					  const ArrayOfFeatureVector &features,
-					  ArrayOfPositionVector &resultPositions,
-					  ArrayOfFeatureVector &resultFeatures,
+		template<typename ConstrainFnc, typename VectorInputIterator, typename VectorOutputIterator>
+		bool minimize(VectorInputIterator samplesBegin,
+					  VectorInputIterator samplesEnd,
+					  VectorOutputIterator refinedSamplesIter,
 					  const ConstrainFnc &fnc,
-					  size_t nIterations)
+					  size_t nIterations)					  
         {
-			if (positions.empty() || positions.size() != features.size())
-                return false;
 
-			const size_t nElements = positions.size();
-			typename TaskTraitsType::Stacker stack(_traits.stackerParams);
-			StackedLocator sloc(_traits.stackedLocatorParams);
-			
-			// During iterations we alternate between pointers
-			ArrayOfPositionVector pposes[2];
-			ArrayOfFeatureVector pfeatures[2];
+			const size_t nElements = static_cast<size_t>(std::distance(samplesBegin, samplesEnd));
+			if (nElements == 0)
+				return false;
+
+			typename Traits::Locator loc(_traits.getLocatorParams());
+			typename Traits::Matrix positions[2] = {
+				Traits::Matrix(_traits.getStackedDims(), nElements),
+				Traits::Matrix(_traits.getStackedDims(), nElements)
+			};
+
 			
 			// Initialize
-			pposes[0] = positions;
-			pposes[1] = positions;
-			pfeatures[0] = features;
-			pfeatures[1] = features;
+			VectorInputIterator sampleIter = samplesBegin;
+			for (size_t i = 0; i != nElements; ++i) {
+				positions[0].col(i) = *sampleIter;
+				positions[1].col(i) = *sampleIter;
+				++sampleIter;
+			}
 
 			// Loop
 			int index = 0, nextIndex = 1;
-			const PositionVector::Index nPositionRows = positions.front().rows();
-			StackedVector gradient;
+			Vector gradient;
 			Scalar totalEnergy = 0;
 			for (size_t iter = 0; iter < nIterations; ++iter) {
-				
-				ArrayOfPositionVector &curPositions = pposes[index];
-				ArrayOfFeatureVector &curFeatures = pfeatures[index];
-				ArrayOfPositionVector &nextPositions = pposes[nextIndex];
-				ArrayOfFeatureVector &nextFeatures = pfeatures[nextIndex];
 
-				// Build locator for stacked elements
-				sloc.reset();
+				Matrix &curPositions = positions[index];
+				Matrix &nextPositions = positions[nextIndex];
+				
+				// Build locator for modified elements
+				loc.reset();
 				for (size_t i = 0; i < nElements; ++i) {
-					sloc.add(stack(curPositions[i], curFeatures[i]));
+					loc.add(curPositions.col(i));
 				}
 
-				totalEnergy = 0;
 				// For each element
+				totalEnergy = 0;				
 				for (size_t i = 0; i < nElements; ++i) {
 
 					// Determine energy gradient as described in equation 14.
 
-					totalEnergy += energy(i, sloc, gradient);
+					totalEnergy += energy(i, loc, gradient);
 					
 					// Move sample position / feature
-					nextPositions[i] = curPositions[i] - _stepSize * gradient.topRows(nPositionRows);
-					nextFeatures[i] = curFeatures[i];
+					nextPositions.col(i) = curPositions.col(i);
+					nextPositions.col(i).topRows(_traits.getPositionDims()) -= _stepSize * gradient.topRows(_traits.getPositionDims());
 
-					// Constrain sample position /feature
-					fnc(nextPositions[i], nextFeatures[i]);
+					// Constrain sample position / feature
+					fnc(nextPositions.col(i));
 				}
 
 				BBN_LOG("Energy minimization %.2f%% - Total energy %.2f\r",
@@ -131,9 +128,9 @@ namespace bbn {
 
 			BBN_LOG("Energy minimization 100.00%% - Total energy %.2f\n", totalEnergy);
 
-			resultPositions = pposes[index];
-			resultFeatures = pfeatures[index];
-
+			for (size_t i = 0; i != nElements; ++i) {
+				*refinedSamplesIter++ = positions[index].col(i);
+			}
 
 			return true;
 			
@@ -141,14 +138,14 @@ namespace bbn {
         
     private:
 
-		Scalar energy(size_t queryIndex, const StackedLocator &loc, StackedVector &gradient) const
+		Scalar energy(size_t queryIndex, const Locator &loc, Vector &gradient) const
 		{
-			gradient = StackedVector::Zero(loc.dims());
+			gradient = Vector::Zero(loc.dims());
 			Scalar energy = 0;
 
 			std::vector<size_t> neighborIds;
 			std::vector<Scalar> neighborDists2;
-			const StackedVector &query = loc.get(queryIndex);
+			const Vector &query = loc.get(queryIndex);
 
 			if (!loc.findAllWithinRadius(query, _maxSearchRadius, neighborIds, neighborDists2))
 				return energy;
@@ -160,7 +157,7 @@ namespace bbn {
 				if (neighborIds[nidx] == queryIndex)
 					continue; // don't include self
 				
-				const StackedVector &n = loc.get(neighborIds[nidx]);
+				const Vector &n = loc.get(neighborIds[nidx]);
 				const Scalar e = exp(-neighborDists2[nidx] * Scalar(0.5) * oneOverSigmaSquared);
 
 				energy += e;
@@ -172,7 +169,7 @@ namespace bbn {
 
 
 		Scalar _sigma, _stepSize, _maxSearchRadius;
-        TaskTraitsType _traits;
+        Traits _traits;
     };
 }
 

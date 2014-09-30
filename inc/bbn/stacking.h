@@ -25,7 +25,7 @@ namespace bbn {
 	/** Provides stacking of positional and feature vectors into a single combined vector. This closesly
 		reassembles the augmentative version of the bilateral differential. */
 	template<class Position, class Feature>
-	class Stacking : std::binary_function<Position, Feature, typename detail::StackedVectorType<Position, Feature>::type>
+	class Stacking
 	{
 	public:
         

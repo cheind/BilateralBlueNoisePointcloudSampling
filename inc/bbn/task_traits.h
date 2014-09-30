@@ -21,37 +21,85 @@
 #include <vector>
 
 namespace bbn {
-
-	/** Traits for the sampling task. */
+	
+	/** Traits and options for working with algorithms. */
 	template<
-		typename PositionType, /** Vector type representing positional attributes. */
-		typename FeatureType,  /** Vector type representing feature attributes. */
-		bool UseAcceleration = true /** Use acceleration structure for fast nearest neighbor queries. */
-	> struct TaskTraits 
+		typename Scalar,								/** Scalar value type. I.e float, double, ... */
+		int PositionDims = Eigen::Dynamic,				/** Number of positional dimensions at compile time. */
+		int FeatureDims = Eigen::Dynamic,				/** Number of positional dimensions at compile time. */
+		bool UseAcceleration = true						/** Use acceleration structures for faster nearest neighbor queries. */
+	> class TaskTraits
 	{
-		typedef PositionType PositionVector;
-		typedef FeatureType FeatureVector;
-		typedef typename detail::StackedVectorType<PositionVector, FeatureVector>::type StackedVector;		
-		typedef typename detail::LocatorType<StackedVector, UseAcceleration>::type StackedLocator;
-		typedef typename detail::LocatorType<PositionVector, UseAcceleration>::type PositionLocator;
-		typedef Stacking<PositionVector, FeatureVector> Stacker;
-		typedef typename StackedVector::Scalar Scalar;
-		typedef std::vector<PositionVector, Eigen::aligned_allocator<PositionVector> > ArrayOfPositionVector;
-		typedef std::vector<FeatureVector, Eigen::aligned_allocator<FeatureVector> > ArrayOfFeatureVector;
-		typedef std::vector<StackedVector, Eigen::aligned_allocator<StackedVector> > ArrayOfStackedVector;
+	public:
+		enum { 
+			PositionDimsAtCompileTime = PositionDims, 
+			FeatureDimsAtCompileTime = FeatureDims,
+			StackedDimsAtCompileTime = detail::StackedSizeAtCompileTime<PositionDims, FeatureDims>::size
+		};
+
+		typedef Scalar Scalar;																		/** Scalar type */
+		typedef typename Eigen::Matrix<Scalar, StackedDimsAtCompileTime, 1> Vector;					/** Vector type (position + feature) */
+		typedef typename Eigen::Ref<Vector> VectorLike;													/** Vector type (position + feature) */
+		typedef typename Eigen::Matrix<
+			Scalar,  
+			StackedDimsAtCompileTime, 
+			Eigen::Dynamic,
+			Eigen::ColMajor> Matrix;																/** Matrix type holding n Vectors in rows */
+		typedef typename detail::LocatorType<Vector, UseAcceleration>::type Locator;				/** Locator type */
 
 		TaskTraits()
+			: _posDims(0), _featureDims(0)
 		{}
 
-		TaskTraits(const typename StackedLocator::Params &stackedParams, 
-				   const typename PositionLocator::Params &positionParams,
-				   const typename Stacker::Params &stackParams)
-				   :stackedLocatorParams(stackedParams), positionLocatorParams(positionParams), stackerParams(stackParams)
+		TaskTraits(typename Vector::Index posDims, typename Vector::Index featureDims)
+			: _posDims(posDims), _featureDims(featureDims)
 		{}
 
-		typename StackedLocator::Params stackedLocatorParams;
-		typename PositionLocator::Params positionLocatorParams;
-		typename Stacker::Params stackerParams;		 
+		typename Vector::Index getPositionDims() const {
+			if (PositionDimsAtCompileTime != Eigen::Dynamic) {
+				return PositionDimsAtCompileTime;
+			} else {
+				return _posDims;
+			}
+		}
+
+		typename Vector::Index getFeatureDims() const {
+			if (FeatureDimsAtCompileTime != Eigen::Dynamic) {
+				return FeatureDimsAtCompileTime;
+			}
+			else {
+				return _featureDims;
+			}
+		}
+
+		typename Vector::Index getStackedDims() const {
+			return getPositionDims() + getFeatureDims();			
+		}
+
+		void setPositionDims(typename Vector::Index d) {
+			if (PositionDimsAtCompileTime == Eigen::Dynamic) {
+				_posDims = d;
+			}
+		}
+
+		void setFeatureDims(typename Vector::Index d) {
+			if (FeatureDimsAtCompileTime == Eigen::Dynamic) {
+				_featureDims = d;
+			}
+		}
+
+		typename Locator::Params getLocatorParams() const {
+			return _locatorParams;
+		}
+
+		void setLocatorParams(const typename Locator::Params &p) {
+			_locatorParams = p;
+		}
+
+		
+	private:
+		typename Vector::Index _posDims, _featureDims;
+		typename Locator::Params _locatorParams;
 	};
 
 }

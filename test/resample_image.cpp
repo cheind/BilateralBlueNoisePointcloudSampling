@@ -22,106 +22,97 @@
 #include <bbn/energy_minimization.h>
 #include <ctime>
 #include <iostream>
+#include <random>
 
-typedef bbn::TaskTraits< Eigen::Vector2f, Eigen::Vector1f, true> ImageTraits;
+typedef bbn::TaskTraits<float, 2, 1> ImageTraits;
 
-void createImage(cv::Mat &img, const ImageTraits::ArrayOfPositionVector &positions, const ImageTraits::ArrayOfFeatureVector &features)
+cv::Mat createImage(const std::vector<ImageTraits::Vector> &sampled, int imageSize)
 {
-	img.setTo(255);
+	cv::Mat gray(imageSize, imageSize, CV_8UC1);
+	gray.setTo(255);
 
-	static cv::Scalar colors[] = {
-		cv::Scalar(0, 0, 0), 
-		cv::Scalar(255, 0, 0),
-		cv::Scalar(0, 255, 0),
-		cv::Scalar(0, 0, 255)
-	};
+	cv::Mat mask(imageSize, imageSize, CV_8UC1);
+	mask.setTo(255);
 
-	for (size_t i = 0; i < positions.size(); ++i) {
+	for (size_t i = 0; i < sampled.size(); ++i) {
 		cv::Point pix(
-			cvRound(positions[i].x()*img.cols),
-			cvRound(positions[i].y()*img.rows));
+			cvRound(sampled[i].x()*gray.cols),
+			cvRound(sampled[i].y()*gray.rows));
 
-		cv::Scalar c = colors[cvRound(features[i].x() * 3)];
-		cv::circle(img, pix, 2, c, CV_FILLED);
+		cv::circle(gray, pix, 2, cvRound(sampled[i].z() * 255), CV_FILLED);
+		cv::circle(mask, pix, 2, 0, CV_FILLED);
 	}
+
+	cv::Mat colorized;
+	cv::applyColorMap(gray, colorized, cv::COLORMAP_JET);
+	colorized.setTo(255, mask);
+	return colorized;
 }
+
+
+class PixelSampler {
+public:
+	PixelSampler() 
+	{
+		_gen = std::mt19937(_rd());
+		_disPos = std::uniform_real_distribution<float>(0, 1);
+		_disWeight = std::discrete_distribution<>({50,50});
+	}
+
+	ImageTraits::Vector operator()(void) {
+		ImageTraits::Vector v(3);
+		v(0) = _disPos(_gen);
+		v(1) = _disPos(_gen);
+		v(2) = _disWeight(_gen) / 2.f;
+		return v;
+	}
+private:
+	std::random_device _rd;
+	std::mt19937 _gen;
+	std::uniform_real_distribution<float> _disPos;
+	std::discrete_distribution<> _disWeight;
+};
 
 int main(int argc, const char **argv) 
 {  
 	const int imageSize = 500;
 	const float spacing = 1.f / imageSize;
 	
-
-	ImageTraits::ArrayOfPositionVector positions;
-	ImageTraits::ArrayOfFeatureVector features;
-
-
-	for (float x = 0; x < 1.f; x += spacing) {
-		for (float y = 0; y < 1.f; y += spacing) {
-			positions.push_back(Eigen::Vector2f(x, y));
-			positions.push_back(Eigen::Vector2f(x, y));
-			positions.push_back(Eigen::Vector2f(x, y));
-			positions.push_back(Eigen::Vector2f(x, y));
-
-			
-			Eigen::Vector1f f;
-			f(0) = 0;
-			features.push_back(f);
-
-			f(0) = 1.f / 3;
-			features.push_back(f);			
-
-			f(0) = 2.f / 3;
-			features.push_back(f);
-
-			f(0) = 1;
-			features.push_back(f);
-		}
-	}
-
-   
-	// Resample by dart throwing.
-	std::vector<size_t> outputIds;
+	ImageTraits it;
+	PixelSampler sampler;
 
 	bbn::DartThrowing<ImageTraits> adt;
-	adt.setConflictRadius(0.05f);
-	adt.setRandomSeed(10);
-	adt.setMaximumAttempts(1000000);
-	adt.setRandomSeed(time(NULL));
+	adt.setTaskTraits(it);
+	adt.setConflictRadius(0.08f);
+	adt.setMaximumAttempts(100000);	
+	
+	std::vector<ImageTraits::Vector> sampled;
     
-	if (!adt.resample(positions, features, outputIds)) {
+	if (!adt.resample(sampler, std::back_inserter(sampled))) {
         std::cerr << "Failed to throw darts." << std::endl;
     }
 
-	ImageTraits::ArrayOfPositionVector resampledPositions;
-	ImageTraits::ArrayOfFeatureVector resampledFeatures;
-	for (size_t i = 0; i < outputIds.size(); ++i) {
-		resampledPositions.push_back(positions[outputIds[i]]);
-		resampledFeatures.push_back(features[outputIds[i]]);
-	}
+	cv::Mat img = createImage(sampled, imageSize);
+	cv::imshow("result", img);
+	cv::waitKey();
 
 	bbn::EnergyMinimization<ImageTraits> em;
+	em.setTaskTraits(it);
 	em.setKernelSigma(0.03f);
 	em.setStepSize(0.45f * 0.03f * 0.03f);
 	em.setMaximumSearchRadius(0.2f);
 
-	cv::Mat img(imageSize, imageSize, CV_8UC3);
-	createImage(img, resampledPositions, resampledFeatures);
-
-	cv::imshow("result", img);
-	cv::waitKey();
-
-
 	while (true) {
-		em.minimize(resampledPositions, resampledFeatures, resampledPositions, resampledFeatures, [&](ImageTraits::PositionVector &p, ImageTraits::FeatureVector &f) {
+		em.minimize(sampled.begin(), sampled.end(), sampled.begin(), [&](ImageTraits::VectorLike p) {
 			p.x() = std::max<float>(0, std::min<float>(p.x(), 1));
 			p.y() = std::max<float>(0, std::min<float>(p.y(), 1));
 		}, 1);
 
-		createImage(img, resampledPositions, resampledFeatures);
+		img = createImage(sampled, imageSize);
 		cv::imshow("result", img);
 		cv::waitKey();
 	}
+
     
     return 0;
 }
