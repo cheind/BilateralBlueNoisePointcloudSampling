@@ -23,12 +23,34 @@
 
 #include <iostream>
 
+typedef bbn::TaskTraits< Eigen::Vector2f, Eigen::Vector1f, true> ImageTraits;
+
+void createImage(cv::Mat &img, const ImageTraits::ArrayOfPositionVector &positions, const ImageTraits::ArrayOfFeatureVector &features)
+{
+	img.setTo(255);
+
+	static cv::Scalar colors[] = {
+		cv::Scalar(0, 0, 0),
+		cv::Scalar(0, 255, 0),
+		cv::Scalar(255, 0, 0),
+		cv::Scalar(0, 0, 255)
+	};
+
+	for (size_t i = 0; i < positions.size(); ++i) {
+		cv::Point pix(
+			cvRound(positions[i].x()*img.cols),
+			cvRound(positions[i].y()*img.rows));
+
+		cv::Scalar c = colors[cvRound(features[i].x())];
+		cv::circle(img, pix, 2, c, CV_FILLED);
+	}
+}
+
 int main(int argc, const char **argv) 
 {  
 	const int imageSize = 500;
 	const float spacing = 1.f / imageSize;
-
-	typedef bbn::TaskTraits< Eigen::Vector2f, Eigen::Vector1f, true> ImageTraits;
+	
 
 	ImageTraits::ArrayOfPositionVector positions;
 	ImageTraits::ArrayOfFeatureVector features;
@@ -61,27 +83,33 @@ int main(int argc, const char **argv)
         std::cerr << "Failed to throw darts." << std::endl;
     }
 
-	cv::Mat img(imageSize, imageSize, CV_8UC3);
-	img.setTo(255);
-
-	static cv::Scalar colors[] = {
-		cv::Scalar(0, 0, 0),
-		cv::Scalar(0, 255, 0),
-		cv::Scalar(255, 0, 0),		
-		cv::Scalar(0, 0, 255)
-	};
-
+	ImageTraits::ArrayOfPositionVector resampledPositions;
+	ImageTraits::ArrayOfFeatureVector resampledFeatures;
 	for (size_t i = 0; i < outputIds.size(); ++i) {
-		cv::Point pix(
-			cvRound(positions[outputIds[i]].x()*imageSize),
-			cvRound(positions[outputIds[i]].y()*imageSize));
-
-		cv::Scalar c = colors[cvRound(features[outputIds[i]].x())];
-		cv::circle(img, pix, 2, c, CV_FILLED);
+		resampledPositions.push_back(positions[outputIds[i]]);
+		resampledFeatures.push_back(features[outputIds[i]]);
 	}
+
+	bbn::EnergyMinimization<ImageTraits> em;
+	em.setKernelSigma(0.03f);
+
+	cv::Mat img(imageSize, imageSize, CV_8UC3);
+	createImage(img, resampledPositions, resampledFeatures);
 
 	cv::imshow("result", img);
 	cv::waitKey();
+
+
+	while (true) {
+		em.minimize(resampledPositions, resampledFeatures, resampledPositions, resampledFeatures, [&](ImageTraits::PositionVector &p, ImageTraits::FeatureVector &f) {
+			p.x() = std::max<float>(0, std::min<float>(p.x(), 1));
+			p.y() = std::max<float>(0, std::min<float>(p.y(), 1));
+		}, 1);
+
+		createImage(img, resampledPositions, resampledFeatures);
+		cv::imshow("result", img);
+		cv::waitKey();
+	}
     
     return 0;
 }
