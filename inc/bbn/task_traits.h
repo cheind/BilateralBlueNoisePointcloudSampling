@@ -39,7 +39,7 @@ namespace bbn {
 
 		typedef Scalar Scalar;																		/** Scalar type */
 		typedef typename Eigen::Matrix<Scalar, StackedDimsAtCompileTime, 1> Vector;					/** Vector type (position + feature) */
-		typedef typename Eigen::Ref<Vector> VectorLike;													/** Vector type (position + feature) */
+		typedef typename Eigen::Ref<Vector> VectorLike;												/** Vector type (position + feature) */
 		typedef typename Eigen::Matrix<
 			Scalar,  
 			StackedDimsAtCompileTime, 

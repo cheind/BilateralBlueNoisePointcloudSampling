@@ -29,7 +29,7 @@ typedef bbn::Stacking<Eigen::Vector3f, Eigen::Vector3f> Stacker;
 class PointSampler {
 public:	
 	PointSampler(ArrayOfVector &points, ArrayOfVector &normals, Stacker &s)
-		:_points(points), _normals(normals), _s(s)
+		:_points(points), _normals(normals), _s(s), _index(0)
 	{
 		_sampleIndices.reserve(_points.size());
 		for (size_t i = 0; i < _points.size(); ++i)
@@ -80,7 +80,7 @@ int main(int argc, const char **argv) {
 	adt.setConflictRadius(0.01f);
 	adt.setMaximumAttempts(points.size());
 
-	Stacker stacker(Stacker::Params(1.0f, 0.05f));
+	Stacker stacker(Stacker::Params(1.0f, 0.09f));
 
 	PointSampler sampler(points, normals, stacker);
 	std::vector<R3Traits::Vector> sampled;
@@ -92,6 +92,7 @@ int main(int argc, const char **argv) {
 	bbn::HashtableLocator<Eigen::Vector3f> ploc;
 	ploc.add(points.begin(), points.end());
 
+	/*
 	bbn::EnergyMinimization<R3Traits> em;
 	em.setTaskTraits(traits);
 	em.setKernelSigma(0.03f);
@@ -101,15 +102,42 @@ int main(int argc, const char **argv) {
 
 		size_t idx;
 		float dist2;
-		if (!ploc.findClosestWithinRadius(p.topRows(3), 0.1f, idx, dist2))
+		if (!ploc.findClosestWithinRadius(p.topRows(3), 0.01f, idx, dist2))
 			return;
 
 		Eigen::Vector3f x = p.topRows(3) - points[idx];
 		Eigen::Vector3f xdash = points[idx] + (x - x.dot(normals[idx]) * normals[idx]);
 
-		p = stacker(xdash, normals[idx]);
+		std::vector<size_t> indices;
+		std::vector<float> dists2;
+		if (!ploc.findAllWithinRadius(xdash, 0.005f, indices, dists2))
+			return;
 
-	}, 3);
+		std::vector<Eigen::Vector3f> sel_points;
+
+		for (size_t i = 0; i < indices.size(); ++i) {
+			sel_points.push_back(points[indices[i]]);
+		}
+
+		//std::cout << sel_points.size() << std::endl;
+
+		Eigen::Matrix3Xf::MapType pointsInMatrix(sel_points.at(0).data(), 3, static_cast<int>(sel_points.size()));
+		const Eigen::Vector3f centroid = pointsInMatrix.rowwise().mean();
+		pointsInMatrix = pointsInMatrix.colwise() - centroid;
+
+		const Eigen::Matrix3f cov = pointsInMatrix * pointsInMatrix.transpose();
+		Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig(cov);
+
+		Eigen::Vector3f newn = eig.eigenvectors().col(0).normalized();
+
+		if (newn.dot(normals[idx]) < 0)
+			newn *= -1;
+
+		//std::cout << normals[idx].transpose() << " " << newn.transpose() << std::endl;
+
+		p = stacker(xdash, newn);
+	}, 10);
+	*/
 
 	ArrayOfVector resampledPoints, resampledNormals;
 	for (size_t i = 0; i < sampled.size(); ++i) {
